@@ -48,4 +48,3 @@ build/
 
 # Data files (uncomment if you want to ignore todos.txt)
 todos.txt
-./todoapp
