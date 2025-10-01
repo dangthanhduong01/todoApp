@@ -1,6 +1,24 @@
 # 🎆 Fireworks Package
 
-Package pháo hoa với hiệu ứng vật lý thực tế cho ứng dụng Fyne.
+P1. **Burst** 🎆
+   - Nổ tán ra theo mọi hướng với emoji pháo hoa
+   - Classic fireworks explosion
+
+2. **Fountain** 🌟
+   - Phun lên như đài phun nước với emoji sao
+   - Particles bay lên cao rồi rơi xuống
+
+3. **Spiral** 🎇
+   - Xoắn ốc tạo pattern đẹp mắt với emoji sparkler
+   - Hiệu ứng xoay tròn
+
+4. **Heart** 💫
+   - Hình trái tim romantic với emoji dizzy
+   - Sử dụng phương trình tham số toán học
+
+5. **Star** ⭐
+   - Hình ngôi sao 5 cánh với emoji ngôi sao
+   - Pattern symmetric đẹp mắt hiệu ứng vật lý thực tế cho ứng dụng Fyne.
 
 ## ✨ Tính năng
 
@@ -14,26 +32,33 @@ Package pháo hoa với hiệu ứng vật lý thực tế cho ứng dụng Fyne
 - **Sparkle Effects**: 20% particles có hiệu ứng lấp lánh random
 - **Bounce Physics**: 30% particles nảy khi chạm đất với energy loss
 
-### 🎨 Các loại explosion:
+### 🎨 Hệ thống emoji pháo hoa:
 
-1. **Burst** 🎆
-   - Nổ tán ra theo mọi hướng
+**10 emoji chính**: 🎆🎇✨🌟�⭐��🌠🎊
+- Particles sử dụng emoji pháo hoa đa dạng
+- Hiệu ứng sống động và bắt mắt
+- Visual phong phú và có cảm xúc
+
+### 🎆 Các loại explosion:
+
+1. **Burst** 🔴
+   - Nổ tán ra theo mọi hướng với chấm màu sặc sỡ
    - Classic fireworks explosion
 
-2. **Fountain** ⛲ 
-   - Phun lên như đài phun nước
+2. **Fountain** 🔵
+   - Phun lên như đài phun nước với chấm xanh
    - Particles bay lên cao rồi rơi xuống
 
-3. **Spiral** 🌀
-   - Xoắn ốc tạo pattern đẹp mắt
+3. **Spiral** 🟣
+   - Xoắn ốc tạo pattern đẹp mắt với chấm tím
    - Hiệu ứng xoay tròn
 
-4. **Heart** 💝
-   - Hình trái tim romantic
+4. **Heart** �
+   - Hình trái tim romantic với chấm đỏ
    - Sử dụng phương trình tham số toán học
 
-5. **Star** ⭐
-   - Hình ngôi sao 5 cánh
+5. **Star** 🟡
+   - Hình ngôi sao 5 cánh với chấm vàng
    - Pattern symmetric đẹp mắt
 
 ## 🚀 Cách sử dụng
@@ -133,6 +158,13 @@ elif lifeRatio < 0.1:
 - **Turbulence**: Enhanced dynamic movement
 - **Memory**: Ultra-fast cleanup + optimized trail management
 
+### 🚀 Speed Improvements:
+- **Explosion Delays**: Reduced by 50-75% for rapid-fire effect
+- **Particle Physics**: 2x faster movement với enhanced turbulence
+- **Bounce Power**: Stronger bounces với less energy loss
+- **Wind Effects**: 3x stronger wind forces
+- **Machine Gun Finale**: 60ms intervals thay vì 150ms
+
 ## 🎯 Integration với Todo App
 
 Khi user hoàn thành một task, system sẽ:
@@ -156,20 +188,32 @@ Khi user hoàn thành một task, system sẽ:
 
 ## 🎨 Customization
 
-### Colors:
+### Colorful Dots System:
 ```go
-colors := []string{"🎆", "🎇", "✨", "🌟", "💫", "⭐", "💥", "🔥", "🌠", "🎊"}
+// Main colors - chấm màu chính
+colors := []string{"🔴", "🟠", "🟡", "🟢", "🔵", "🟣", "🟤", "⚫", "⚪", "🟥", "🟧", "🟨", "🟩", "🟦", "🟪"}
+
+// Sparkle colors - chấm sáng lấp lánh  
+sparkleColors := []string{"⚪", "🟡", "🟠", "�"}
+
+// Fade colors - chấm mờ dần
+fadeColors := []string{"⚫", "🟫", "�"}
+
+// Trail colors - vệt sáng
+trailColors := []string{"⚪", "�", "🟤", "⚫"}
 ```
 
-### Enhanced Timing Sequence:
-- **Wave 1**: Center burst (immediate)
-- **Wave 2**: Symmetric bursts (+300ms)  
-- **Wave 3**: Romantic heart (+900ms)
-- **Wave 4**: Star constellation (+1700ms)
-- **Wave 5**: Fountain finale (+2200ms)
-- **Wave 6**: Spiral dance (+2600ms)
-- **Grand Finale**: Massive burst (+3300ms)
-- **Final Sparkles**: Random bursts (+3500ms)
+### RAPID-FIRE Timing Sequence:
+- **Wave 1**: Lightning opening (+0ms)
+- **Wave 2**: Rapid symmetric bursts (+150ms) **⚡ 2X NHANH HƠN** 
+- **Wave 3**: Quick heart (+400ms) **⚡ 2.25X NHANH HƠN**
+- **Wave 4**: Machine-gun star constellation (+700ms) **⚡ 2.4X NHANH HƠN**
+- **Wave 5**: Instant fountain duo (+900ms) **⚡ 2.4X NHANH HƠN**
+- **Wave 6**: Rapid spiral dance (+1050ms) **⚡ 2.5X NHANH HƠN**
+- **MASSIVE Finale**: Triple burst explosion (+1300ms) **⚡ 2.5X NHANH HƠN**
+- **Machine Gun Sparkles**: 5 rapid bursts (+1400ms) **⚡ 2.5X NHANH HƠN**
+
+**Tổng thời gian: ~2.5 giây thay vì 8+ giây - SIÊU NHANH! 🚀**
 
 ## 📱 Fyne Integration
 

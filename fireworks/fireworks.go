@@ -20,20 +20,20 @@ type TrailPoint struct {
 
 // Particle đại diện cho một hạt pháo hoa
 type Particle struct {
-	X, Y           float64 // Vị trí hiện tại
-	VX, VY         float64 // Vận tốc theo trục X và Y
-	StartX, StartY float64 // Vị trí ban đầu
-	Life           int     // Tuổi thọ (frames)
-	MaxLife        int     // Tuổi thọ tối đa
-	Size           float64 // Kích thước
-	Color          string  // Màu sắc (emoji)
-	Gravity        float64 // Ảnh hưởng của trọng lực
-	Fade           bool    // Có fade out không
-	Alpha          float64 // Độ trong suốt (0.0-1.0)
+	X, Y           float64      // Vị trí hiện tại
+	VX, VY         float64      // Vận tốc theo trục X và Y
+	StartX, StartY float64      // Vị trí ban đầu
+	Life           int          // Tuổi thọ (frames)
+	MaxLife        int          // Tuổi thọ tối đa
+	Size           float64      // Kích thước
+	Color          string       // Màu sắc (emoji)
+	Gravity        float64      // Ảnh hưởng của trọng lực
+	Fade           bool         // Có fade out không
+	Alpha          float64      // Độ trong suốt (0.0-1.0)
 	Trail          []TrailPoint // Vệt sáng phía sau
-	Bounce         bool    // Có nảy khi chạm đất không
-	WindResistance float64 // Sức cản gió
-	Sparkle        bool    // Có lấp lánh không
+	Bounce         bool         // Có nảy khi chạm đất không
+	WindResistance float64      // Sức cản gió
+	Sparkle        bool         // Có lấp lánh không
 }
 
 // FireworksSystem quản lý toàn bộ hệ thống pháo hoa
@@ -136,7 +136,7 @@ func (fs *FireworksSystem) createParticlesFromExplosion(explosion Explosion) {
 			scale := explosion.Speed * 0.15
 			heartX := scale * 16 * math.Pow(math.Sin(t), 3)
 			heartY := -scale * (13*math.Cos(t) - 5*math.Cos(2*t) - 2*math.Cos(3*t) - math.Cos(4*t))
-			
+
 			// Thêm animation theo thời gian để trái tim "đập"
 			pulse := 1.0 + 0.3*math.Sin(float64(i)*0.5)
 			vx = heartX * pulse
@@ -147,11 +147,11 @@ func (fs *FireworksSystem) createParticlesFromExplosion(explosion Explosion) {
 			starPoints := 5
 			outerRadius := explosion.Speed
 			innerRadius := explosion.Speed * 0.4
-			
+
 			// Tạo 2 layers: outer points và inner points
 			pointIndex := i % (starPoints * 2)
 			angle := float64(pointIndex) * (math.Pi / float64(starPoints))
-			
+
 			if pointIndex%2 == 0 {
 				// Outer points (điểm nhọn)
 				vx = math.Cos(angle) * outerRadius
@@ -176,11 +176,11 @@ func (fs *FireworksSystem) createParticlesFromExplosion(explosion Explosion) {
 			Color:          explosion.Colors[rand.Intn(len(explosion.Colors))],
 			Gravity:        0.15 + rand.Float64()*0.25, // Gravity từ 0.15 đến 0.4 - Nhanh hơn
 			Fade:           true,
-			Alpha:          1.0,                              // Bắt đầu với độ trong suốt full
-			Trail:          make([]TrailPoint, 0, 3),         // Trail giảm xuống 3 điểm cho tốc độ
-			Bounce:         rand.Float64() < 0.4,             // 40% chance bounce - Nhiều action hơn
-			WindResistance: 0.95 + rand.Float64()*0.03,      // Air resistance 0.95-0.98 - Ít cản hơn
-			Sparkle:        rand.Float64() < 0.2,             // 20% chance sparkle
+			Alpha:          1.0,                        // Bắt đầu với độ trong suốt full
+			Trail:          make([]TrailPoint, 0, 3),   // Trail giảm xuống 3 điểm cho tốc độ
+			Bounce:         rand.Float64() < 0.4,       // 40% chance bounce - Nhiều action hơn
+			WindResistance: 0.95 + rand.Float64()*0.03, // Air resistance 0.95-0.98 - Ít cản hơn
+			Sparkle:        rand.Float64() < 0.2,       // 20% chance sparkle
 		}
 
 		fs.particles = append(fs.particles, particle)
@@ -221,7 +221,7 @@ func (fs *FireworksSystem) Update() {
 		particle.VY *= particle.WindResistance
 
 		// 3. Hiệu ứng gió mạnh hơn
-		windForce := 0.03 * math.Sin(float64(fs.frameCount)*0.2 + particle.X*0.02)
+		windForce := 0.03 * math.Sin(float64(fs.frameCount)*0.2+particle.X*0.02)
 		particle.VX += windForce
 
 		// 4. Turbulence mạnh cho dynamic movement
@@ -235,8 +235,8 @@ func (fs *FireworksSystem) Update() {
 
 		// 6. Bounce effect mạnh hơn khi chạm đất
 		if particle.Bounce && particle.Y >= fs.height-20 && particle.VY > 0 {
-			particle.VY *= -0.8  // Bounce mạnh hơn - ít energy loss
-			particle.VX *= 0.9   // Ít friction hơn
+			particle.VY *= -0.8 // Bounce mạnh hơn - ít energy loss
+			particle.VX *= 0.9  // Ít friction hơn
 			particle.Y = fs.height - 20
 			// Thêm random burst khi bounce
 			particle.VX += (rand.Float64() - 0.5) * 0.5
@@ -287,12 +287,12 @@ func (fs *FireworksSystem) Render() *fyne.Container {
 			if trailPoint.Alpha > 0.1 { // Chỉ vẽ khi còn đủ sáng
 				trailLabel := widget.NewLabel("·")
 				trailLabel.TextStyle = fyne.TextStyle{Bold: false}
-				
+
 				// Size giảm dần theo trail
 				trailSize := float32(10 + j*2)
 				trailLabel.Resize(fyne.NewSize(trailSize, trailSize))
 				trailLabel.Move(fyne.NewPos(float32(trailPoint.X-float64(trailSize/2)), float32(trailPoint.Y-float64(trailSize/2))))
-				
+
 				fs.canvas.Add(trailLabel)
 			}
 		}
@@ -303,7 +303,7 @@ func (fs *FireworksSystem) Render() *fyne.Container {
 		// Chọn emoji dựa trên life cycle và effects
 		emoji := particle.Color
 		lifeRatio := float64(particle.Life) / float64(particle.MaxLife)
-		
+
 		if particle.Sparkle && rand.Float64() < 0.3 {
 			// Sparkle effect
 			sparkleEmojis := []string{"✨", "💫", "🌟", "⭐"}
@@ -315,7 +315,7 @@ func (fs *FireworksSystem) Render() *fyne.Container {
 				emoji = fadeEmojis[rand.Intn(len(fadeEmojis))]
 			}
 		} else if lifeRatio > 0.6 {
-			// Giai đoạn giữa - transition effects  
+			// Giai đoạn giữa - transition effects
 			if rand.Float64() < 0.4 {
 				transitionEmojis := []string{"✨", "💫", "⭐"}
 				emoji = transitionEmojis[rand.Intn(len(transitionEmojis))]
@@ -325,7 +325,7 @@ func (fs *FireworksSystem) Render() *fyne.Container {
 		// Tạo label với size dựa trên particle size và alpha
 		label := widget.NewLabel(emoji)
 		label.TextStyle = fyne.TextStyle{Bold: particle.Alpha > 0.7}
-		
+
 		// Size thay đổi theo alpha và particle size
 		displaySize := float32(particle.Size * 15 * particle.Alpha)
 		if displaySize < 8 {
@@ -355,54 +355,54 @@ func (fs *FireworksSystem) Start() {
 	go func() {
 		// Wave 1: Lightning fast opening burst
 		fs.AddExplosion(fs.width*0.5, fs.height*0.3, Burst)
-		
+
 		time.Sleep(150 * time.Millisecond) // Giảm từ 300ms xuống 150ms
-		
+
 		// Wave 2: Rapid symmetric bursts
 		fs.AddExplosion(fs.width*0.3, fs.height*0.25, Burst)
 		fs.AddExplosion(fs.width*0.7, fs.height*0.25, Burst)
-		
+
 		time.Sleep(250 * time.Millisecond) // Giảm từ 600ms xuống 250ms
-		
+
 		// Wave 3: Quick romantic heart
 		fs.AddExplosion(fs.width*0.5, fs.height*0.4, Heart)
-		
+
 		time.Sleep(300 * time.Millisecond) // Giảm từ 800ms xuống 300ms
-		
+
 		// Wave 4: Rapid star constellation - đồng loạt
 		fs.AddExplosion(fs.width*0.2, fs.height*0.2, Star)
-		time.Sleep(50 * time.Millisecond)  // Rapid fire
+		time.Sleep(50 * time.Millisecond) // Rapid fire
 		fs.AddExplosion(fs.width*0.8, fs.height*0.2, Star)
-		time.Sleep(50 * time.Millisecond)  // Rapid fire
+		time.Sleep(50 * time.Millisecond) // Rapid fire
 		fs.AddExplosion(fs.width*0.5, fs.height*0.15, Star)
-		
+
 		time.Sleep(200 * time.Millisecond) // Giảm từ 500ms xuống 200ms
-		
+
 		// Wave 5: Instant fountain duo
 		fs.AddExplosion(fs.width*0.25, fs.height*0.7, Fountain)
 		fs.AddExplosion(fs.width*0.75, fs.height*0.7, Fountain)
-		
+
 		time.Sleep(150 * time.Millisecond) // Giảm từ 400ms xuống 150ms
-		
+
 		// Wave 6: Rapid spiral dance
 		fs.AddExplosion(fs.width*0.4, fs.height*0.5, Spiral)
 		time.Sleep(100 * time.Millisecond) // Rapid fire
 		fs.AddExplosion(fs.width*0.6, fs.height*0.5, Spiral)
-		
+
 		time.Sleep(250 * time.Millisecond) // Giảm từ 700ms xuống 250ms
-		
+
 		// MASSIVE Finale: Triple burst explosion
 		fs.AddExplosion(fs.width*0.5, fs.height*0.4, Burst)
-		time.Sleep(80 * time.Millisecond)  // Super rapid
+		time.Sleep(80 * time.Millisecond) // Super rapid
 		fs.AddExplosion(fs.width*0.45, fs.height*0.35, Burst)
-		time.Sleep(80 * time.Millisecond)  // Super rapid  
+		time.Sleep(80 * time.Millisecond) // Super rapid
 		fs.AddExplosion(fs.width*0.55, fs.height*0.45, Burst)
-		
+
 		time.Sleep(100 * time.Millisecond) // Giảm từ 200ms xuống 100ms
-		
+
 		// RAPID Final sparkles - machine gun style
 		for i := 0; i < 5; i++ { // Tăng từ 3 lên 5 explosions
-			x := fs.width * (0.2 + rand.Float64()*0.6) // Rộng hơn: 20%-80%
+			x := fs.width * (0.2 + rand.Float64()*0.6)  // Rộng hơn: 20%-80%
 			y := fs.height * (0.1 + rand.Float64()*0.4) // Cao hơn: 10%-50%
 			fs.AddExplosion(x, y, Burst)
 			time.Sleep(60 * time.Millisecond) // Giảm từ 150ms xuống 60ms - machine gun!
