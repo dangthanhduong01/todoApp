@@ -11,6 +11,8 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+
+	"todoapp/fireworks"
 )
 
 type TodoApp struct {
@@ -26,19 +28,27 @@ type TodoApp struct {
 	tabs           *container.AppTabs
 	inputContainer *fyne.Container
 	addButton      *widget.Button
+	settingsButton *widget.Button
+	isDarkTheme    bool
+	myApp          fyne.App
 	showingInput   bool
 }
 
 func main() {
 	fmt.Println("🚀 Starting Todo App...")
 
-	// Force software rendering to fix input display issues
+	// Force software rendering and fix input display issues
 	os.Setenv("FYNE_DRIVER", "x11")
 	os.Setenv("FYNE_SOFTWARE", "1")
 	os.Setenv("FYNE_DISABLE_HARDWARE_ACCELERATION", "1")
-	os.Setenv("GTK_IM_MODULE", "ibus")
-	os.Setenv("QT_IM_MODULE", "ibus")
-	os.Setenv("XMODIFIERS", "@im=ibus")
+	// Disable problematic input methods that cause text rendering issues
+	os.Setenv("GTK_IM_MODULE", "")
+	os.Setenv("QT_IM_MODULE", "")
+	os.Setenv("XMODIFIERS", "")
+	os.Setenv("SDL_IM_MODULE", "")
+	// Force proper text rendering
+	os.Setenv("FYNE_FONT", "")
+	os.Setenv("FYNE_THEME", "light")
 
 	fmt.Println("📱 Environment variables set for software rendering")
 
@@ -56,8 +66,10 @@ func main() {
 	fmt.Println("📐 Window sized and centered")
 
 	todoApp := &TodoApp{
-		todoList: NewTodoList("todos.txt"),
-		window:   myWindow,
+		todoList:    NewTodoList("todos.txt"),
+		window:      myWindow,
+		myApp:       myApp,
+		isDarkTheme: false, // Mặc định theme sáng
 	}
 	fmt.Println("📋 TodoApp struct created")
 
@@ -78,13 +90,17 @@ func (app *TodoApp) setupUI() {
 	})
 	app.addButton.Importance = widget.HighImportance
 
-	// Tạo widget.Entry thông thường
-	app.addEntry = widget.NewEntry()
+	// Tạo widget.Entry với multiline để tránh text rendering issues
+	app.addEntry = widget.NewMultiLineEntry()
 	app.addEntry.SetPlaceHolder("Nhập công việc mới...")
+	app.addEntry.Wrapping = fyne.TextWrapWord
+	app.addEntry.Resize(fyne.NewSize(400, 60))
 
-	// Set change handler
+	// Set change handler với refresh để force text hiển thị
 	app.addEntry.OnChanged = func(text string) {
 		fmt.Printf("📝 Text changed: '%s'\n", text)
+		// Force refresh để text hiện ngay
+		app.addEntry.Refresh()
 	}
 
 	// Submit handler
@@ -111,16 +127,30 @@ func (app *TodoApp) setupUI() {
 		container.NewTabItem("Đã hoàn thành", app.completedList),
 	)
 
-	// Nội dung chính
-	content := container.NewVBox(
-		widget.NewCard("", "Todo List Desktop App", nil),
-		paddedInput,
-		widget.NewSeparator(),
+	// Tạo nút Settings
+	app.settingsButton = widget.NewButton("⚙️ Cài đặt", func() {
+		app.showSettingsDialog()
+	})
+	app.settingsButton.Importance = widget.MediumImportance
+
+	// Nội dung chính với expanded layout
+	header := widget.NewCard("", "Todo List Desktop App", nil)
+	header.Resize(fyne.NewSize(600, 60))
+
+	// Header với nút settings
+	headerWithSettings := container.NewBorder(
+		nil, nil, nil, app.settingsButton,
+		header,
+	)
+
+	content := container.NewBorder(
+		container.NewVBox(headerWithSettings, paddedInput, widget.NewSeparator()),
+		nil, nil, nil,
 		app.tabs,
 	)
 
 	app.window.SetContent(content)
-	app.window.Resize(fyne.NewSize(600, 500))
+	app.window.Resize(fyne.NewSize(800, 700))
 
 	// Load dữ liệu ban đầu
 	app.refreshAllLists()
@@ -349,8 +379,13 @@ func NewTodoItemWidget(todo Todo, app *TodoApp) *TodoItemWidget {
 }
 
 func (app *TodoApp) createTodoItem() fyne.CanvasObject {
-	// Tạo card trống sẽ được cập nhật sau
-	return widget.NewCard("", "", widget.NewLabel(""))
+	// Tạo card với size phù hợp cho 2 lines text
+	card := widget.NewCard("", "", widget.NewLabel(""))
+
+	// Set size với height đủ cho title + spacer + time
+	card.Resize(fyne.NewSize(750, 85))
+
+	return card
 }
 
 func (app *TodoApp) updateTodoItem(id widget.ListItemID, item fyne.CanvasObject, listType string) {
@@ -373,16 +408,37 @@ func (app *TodoApp) updateTodoItem(id widget.ListItemID, item fyne.CanvasObject,
 	todo := todos[id]
 	card := item.(*widget.Card)
 
-	// Cập nhật card
+	// Reset card title và subtitle
+	card.SetTitle("")
+	card.SetSubTitle("")
+
+	// Tạo nội dung todo với text truncation
 	status := "📌"
 	if todo.Completed {
 		status = "✅"
 	}
 
-	card.SetTitle(fmt.Sprintf("%s %s", status, todo.Description))
-	card.SetSubTitle(fmt.Sprintf("ID: %d", todo.ID))
+	// Truncate description nếu quá dài (>50 characters)
+	description := todo.Description
+	if len(description) > 50 {
+		description = description[:47] + "..."
+	}
 
-	// Tạo buttons mới
+	todoTitle := widget.NewLabel(fmt.Sprintf("%s %s", status, description))
+	todoTitle.TextStyle = fyne.TextStyle{Bold: true}
+	todoTitle.Truncation = fyne.TextTruncateEllipsis
+
+	todoTime := widget.NewLabel(fmt.Sprintf("Thêm: %s", todo.CreatedAt.Format("02/01 15:04")))
+	todoTime.TextStyle = fyne.TextStyle{Italic: true}
+
+	// Container cho nội dung với spacing rõ ràng giữa title và time
+	todoContent := container.NewVBox(
+		todoTitle,
+		widget.NewLabel(""), // Spacer line for separation
+		todoTime,
+	)
+
+	// Tạo buttons nằm ngang (bên phải)
 	completeBtn := widget.NewButton("✅", func() {
 		if todo.Completed {
 			dialog.ShowInformation("Thông báo", "Công việc này đã hoàn thành", app.window)
@@ -395,23 +451,31 @@ func (app *TodoApp) updateTodoItem(id widget.ListItemID, item fyne.CanvasObject,
 		app.confirmDelete(todo.ID, todo.Description)
 	})
 
-	// Style buttons
+	// Style buttons compact - không có màu nền
 	if todo.Completed {
 		completeBtn.SetText("✓")
-		completeBtn.Importance = widget.MediumImportance
 	} else {
-		completeBtn.Importance = widget.SuccessImportance
+		completeBtn.SetText("✅")
 	}
-	deleteBtn.Importance = widget.DangerImportance
+	// Không set importance để buttons không có màu nền
 
-	// Đặt buttons ở bên phải
+	// Buttons nằm ngang với khoảng cách nhỏ
 	buttonContainer := container.NewHBox(completeBtn, deleteBtn)
-	card.SetContent(buttonContainer)
+
+	// Layout chính với spacing rõ ràng
+	content := container.NewBorder(
+		nil, nil, nil,
+		container.NewPadded(buttonContainer), // Add padding around buttons
+		container.NewPadded(todoContent),     // Add padding around content
+	)
+
+	card.SetContent(content)
 }
 
 func (app *TodoApp) addTodo() {
-	// Get text from entry widget
-	description := strings.TrimSpace(app.addEntry.Text)
+	// Get text from entry widget và loại bỏ newlines
+	description := strings.ReplaceAll(strings.TrimSpace(app.addEntry.Text), "\n", " ")
+	description = strings.ReplaceAll(description, "\r", " ")
 	fmt.Printf("addTodo called - Entry text: '%s'\n", app.addEntry.Text)
 	fmt.Printf("After trim: '%s'\n", description)
 
@@ -439,6 +503,15 @@ func (app *TodoApp) addTodo() {
 }
 
 func (app *TodoApp) markComplete(todoID int) {
+	// Tìm todo để lấy description trước khi mark complete
+	var todoDescription string
+	for _, todo := range app.allTodos {
+		if todo.ID == todoID {
+			todoDescription = todo.Description
+			break
+		}
+	}
+
 	err := app.todoList.MarkComplete(todoID)
 	if err != nil {
 		dialog.ShowError(err, app.window)
@@ -446,8 +519,9 @@ func (app *TodoApp) markComplete(todoID int) {
 	}
 
 	app.refreshAllLists()
-	dialog.ShowInformation("Thành công",
-		fmt.Sprintf("Đã đánh dấu hoàn thành công việc ID %d", todoID), app.window)
+
+	// Hiển thị animation pháo hoa với physics thực tế
+	fireworks.ShowFireworksDialog(todoDescription, app.window)
 }
 
 func (app *TodoApp) confirmDelete(todoID int, description string) {
@@ -527,6 +601,80 @@ func (app *TodoApp) handleTodoSelection(id widget.ListItemID, listType string) {
 		)
 
 		dialog.ShowCustom("Chọn hành động", "Hủy", content, app.window)
+	}
+}
+
+// showSettingsDialog hiển thị dialog cài đặt theme
+func (app *TodoApp) showSettingsDialog() {
+	// Tạo label để mô tả switch
+	switchLabel := widget.NewLabel("Chế độ theme:")
+	switchLabel.TextStyle = fyne.TextStyle{Bold: true}
+
+	// Label hiển thị trạng thái theme hiện tại
+	themeLabel := widget.NewLabel(app.getThemeLabelText())
+
+	// Tạo switch để chuyển đổi giữa theme sáng và tối
+	var themeSwitch *widget.Button
+	themeSwitch = widget.NewButton("", func() {
+		app.isDarkTheme = !app.isDarkTheme
+		app.applyTheme()
+		app.updateSwitchAppearance(themeSwitch)
+		themeLabel.SetText(app.getThemeLabelText())
+	})
+
+	// Khởi tạo appearance ban đầu
+	app.updateSwitchAppearance(themeSwitch)
+
+	// Thông tin hướng dẫn
+	infoLabel := widget.NewLabel("Chọn giao diện sáng hoặc tối cho ứng dụng")
+	infoLabel.TextStyle = fyne.TextStyle{Italic: true}
+
+	// Layout cho dialog
+	content := container.NewVBox(
+		infoLabel,
+		widget.NewSeparator(),
+		themeLabel,
+		themeSwitch,
+	)
+
+	// Hiển thị dialog
+	dialog.ShowCustom("⚙️ Cài đặt Theme", "Đóng", content, app.window)
+}
+
+// applyTheme áp dụng theme sáng hoặc tối cho giao diện
+func (app *TodoApp) applyTheme() {
+	if app.isDarkTheme {
+		// Áp dụng theme tối
+		app.myApp.Settings().SetTheme(theme.DarkTheme())
+		fmt.Println("🌙 Switched to dark theme")
+	} else {
+		// Áp dụng theme sáng
+		app.myApp.Settings().SetTheme(theme.LightTheme())
+		fmt.Println("☀️ Switched to light theme")
+	}
+
+	// Refresh toàn bộ UI để áp dụng thay đổi
+	app.window.Content().Refresh()
+	app.refreshAllLists()
+}
+
+// getThemeLabelText trả về text cho theme label
+func (app *TodoApp) getThemeLabelText() string {
+	if app.isDarkTheme {
+		return "🌙 Theme hiện tại: Tối"
+	} else {
+		return "☀️ Theme hiện tại: Sáng"
+	}
+}
+
+// updateSwitchAppearance cập nhật appearance của switch button
+func (app *TodoApp) updateSwitchAppearance(btn *widget.Button) {
+	if app.isDarkTheme {
+		btn.SetText("🌙 TỐI")
+		btn.Importance = widget.HighImportance
+	} else {
+		btn.SetText("☀️ SÁNG")
+		btn.Importance = widget.LowImportance
 	}
 }
 
