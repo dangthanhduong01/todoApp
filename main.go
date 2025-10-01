@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -15,25 +16,36 @@ import (
 	"todoapp/fireworks"
 )
 
+// TodoApp represents the main application structure containing UI components and state
 type TodoApp struct {
-	todoList       *TodoList
-	window         fyne.Window
-	allList        *widget.List
-	activeList     *widget.List
-	completedList  *widget.List
-	addEntry       *widget.Entry
-	allTodos       []Todo
-	activeTodos    []Todo
-	completedTodos []Todo
-	tabs           *container.AppTabs
-	inputContainer *fyne.Container
-	addButton      *widget.Button
-	settingsButton *widget.Button
-	isDarkTheme    bool
-	myApp          fyne.App
-	showingInput   bool
+	todoList       *TodoList          // Backend todo list handler
+	window         fyne.Window        // Main application window
+	allList        *widget.List       // List widget for all todos
+	activeList     *widget.List       // List widget for active todos
+	completedList  *widget.List       // List widget for completed todos
+	addEntry       *widget.Entry      // Entry widget for adding new todos
+	allTodos       []Todo             // Cache of all todos
+	activeTodos    []Todo             // Cache of active todos
+	completedTodos []Todo             // Cache of completed todos
+	tabs           *container.AppTabs // Tab container for different todo views
+	inputContainer *fyne.Container    // Container for input elements
+	addButton      *widget.Button     // Button to show add input
+	settingsButton *widget.Button     // Button to show settings
+	isDarkTheme    bool               // Current theme state
+	myApp          fyne.App           // Reference to the Fyne application
+	showingInput   bool               // State of input visibility
+
+	// Navigation and Project management
+	navbar          *container.AppTabs // Main navigation bar
+	navbarButton    *widget.Button     // Button to toggle navbar mode
+	isNavbarMode    bool               // Current view mode state
+	projectsList    *widget.List       // List widget for projects
+	currentProject  string             // Currently selected project name
+	projectTodoList *TodoList          // Backend for current project todos
+	projectTabs     *container.AppTabs // Tab container for project views
 }
 
+// main initializes and starts the Todo application with proper environment setup
 func main() {
 	fmt.Println("🚀 Starting Todo App...")
 
@@ -82,6 +94,7 @@ func main() {
 	myApp.Run()
 }
 
+// setupUI configures and initializes all user interface components
 func (app *TodoApp) setupUI() {
 	// Tạo nút "Thêm" ban đầu với simple handler
 	app.addButton = widget.NewButton("➕ Thêm công việc mới", func() {
@@ -120,7 +133,7 @@ func (app *TodoApp) setupUI() {
 	app.activeList = app.createList("active")
 	app.completedList = app.createList("completed")
 
-	// Tabs
+	// Tabs cho todos (không bao gồm projects)
 	app.tabs = container.NewAppTabs(
 		container.NewTabItem("Tất cả", app.allList),
 		container.NewTabItem("Chưa hoàn thành", app.activeList),
@@ -133,23 +146,34 @@ func (app *TodoApp) setupUI() {
 	})
 	app.settingsButton.Importance = widget.MediumImportance
 
+	// Tạo nút navbar toggle
+	app.navbarButton = widget.NewButton("≡", func() {
+		app.toggleNavbarMode()
+	})
+	app.navbarButton.Importance = widget.MediumImportance
+
 	// Nội dung chính với expanded layout
 	header := widget.NewCard("", "Todo List Desktop App", nil)
 	header.Resize(fyne.NewSize(600, 60))
 
-	// Header với nút settings
-	headerWithSettings := container.NewBorder(
-		nil, nil, nil, app.settingsButton,
+	// Header với nút navbar và settings
+	headerWithButtons := container.NewBorder(
+		nil, nil, 
+		app.navbarButton, // Trái: nút navbar
+		container.NewHBox(app.settingsButton), // Phải: nút settings
 		header,
 	)
 
-	content := container.NewBorder(
-		container.NewVBox(headerWithSettings, paddedInput, widget.NewSeparator()),
+	// Tạo view chính ban đầu (chế độ bình thường)
+	mainView := container.NewBorder(
+		container.NewVBox(headerWithButtons, paddedInput, widget.NewSeparator()),
 		nil, nil, nil,
 		app.tabs,
 	)
 
-	app.window.SetContent(content)
+	// Khởi tạo với chế độ bình thường
+	app.isNavbarMode = false
+	app.window.SetContent(mainView)
 	app.window.Resize(fyne.NewSize(800, 700))
 
 	// Load dữ liệu ban đầu
@@ -167,7 +191,7 @@ func (app *TodoApp) setupUI() {
 	// Input sẽ được focus khi user click nút Thêm
 }
 
-// showAddInput hiển thị input field để nhập todo mới
+// showAddInput displays the input field for adding new todos
 func (app *TodoApp) showAddInput() {
 	// Guard: nếu đã đang hiện input thì không làm gì
 	if app.showingInput {
@@ -202,7 +226,7 @@ func (app *TodoApp) showAddInput() {
 	fmt.Println("🎯 Input field focused")
 }
 
-// hideAddInput ẩn input field và hiện lại nút Thêm
+// hideAddInput hides the input field and shows the Add button again
 func (app *TodoApp) hideAddInput() {
 	// Guard: nếu đã đang ẩn thì không làm gì
 	if !app.showingInput {
@@ -251,15 +275,15 @@ func (app *TodoApp) createList(listType string) *widget.List {
 	return list
 }
 
-// TodoItem represents a single todo item widget
+// TodoItem represents a single todo item widget with custom rendering
 type TodoItem struct {
 	widget.BaseWidget
-	todo        Todo
-	label       *widget.Label
-	completeBtn *widget.Button
-	deleteBtn   *widget.Button
-	onComplete  func(int)
-	onDelete    func(int, string)
+	todo        Todo              // The todo data
+	label       *widget.Label     // Label for displaying todo text
+	completeBtn *widget.Button    // Button to mark as complete
+	deleteBtn   *widget.Button    // Button to delete todo
+	onComplete  func(int)         // Callback when todo is completed
+	onDelete    func(int, string) // Callback when todo is deleted
 }
 
 func NewTodoItem(todo Todo, onComplete func(int), onDelete func(int, string)) *TodoItem {
@@ -325,13 +349,13 @@ func (t *TodoItem) SetTodo(todo Todo) {
 	t.refresh()
 }
 
-// TodoItemWidget tạo widget tùy chỉnh cho todo item
+// TodoItemWidget creates a custom widget for todo items using Card layout
 type TodoItemWidget struct {
 	widget.Card
-	todo        Todo
-	completeBtn *widget.Button
-	deleteBtn   *widget.Button
-	app         *TodoApp
+	todo        Todo           // The todo data
+	completeBtn *widget.Button // Button to complete todo
+	deleteBtn   *widget.Button // Button to delete todo
+	app         *TodoApp       // Reference to main app
 }
 
 func NewTodoItemWidget(todo Todo, app *TodoApp) *TodoItemWidget {
@@ -447,9 +471,9 @@ func (app *TodoApp) updateTodoItem(id widget.ListItemID, item fyne.CanvasObject,
 	// Layout ngang: ngày bên trái, nội dung ở giữa (expand), buttons bên phải
 	horizontalLayout := container.NewBorder(
 		nil, nil,
-		dateLabel,           // Trái: ngày tạo
-		buttonsContainer,    // Phải: buttons
-		contentLabel,        // Giữa: nội dung (sẽ expand)
+		dateLabel,        // Trái: ngày tạo
+		buttonsContainer, // Phải: buttons
+		contentLabel,     // Giữa: nội dung (sẽ expand)
 	)
 
 	card.SetContent(container.NewPadded(horizontalLayout))
@@ -627,12 +651,12 @@ func (app *TodoApp) showSettingsDialog() {
 // applyTheme áp dụng theme sáng hoặc tối cho giao diện
 func (app *TodoApp) applyTheme() {
 	if app.isDarkTheme {
-		// Áp dụng theme tối
-		app.myApp.Settings().SetTheme(theme.DarkTheme())
+		// Áp dụng theme tối - sử dụng default theme với dark variant
+		os.Setenv("FYNE_THEME", "dark")
 		fmt.Println("🌙 Switched to dark theme")
 	} else {
-		// Áp dụng theme sáng
-		app.myApp.Settings().SetTheme(theme.LightTheme())
+		// Áp dụng theme sáng - sử dụng default theme với light variant
+		os.Setenv("FYNE_THEME", "light")
 		fmt.Println("☀️ Switched to light theme")
 	}
 
@@ -661,27 +685,569 @@ func (app *TodoApp) updateSwitchAppearance(btn *widget.Button) {
 	}
 }
 
-// Legacy methods to maintain compatibility (can be removed later)
-func (app *TodoApp) refreshList() {
-	app.refreshAllLists()
+// Project management methods
+
+// createProjectsView creates the projects management view for navbar
+func (app *TodoApp) createProjectsView() *fyne.Container {
+	// Header với thông tin projects và settings
+	projectHeader := widget.NewCard("", "📁 Projects Manager",
+		widget.NewLabel("Tạo và quản lý các dự án todo riêng biệt"))
+
+	// Tạo container cho header với settings button
+	headerWithSettings := container.NewBorder(
+		nil, nil, nil, app.settingsButton,
+		projectHeader,
+	)
+
+	// Nút tạo project mới
+	createProjectBtn := widget.NewButton("➕ Tạo Project Mới", func() {
+		app.showCreateProjectDialog()
+	})
+	createProjectBtn.Importance = widget.HighImportance
+
+	// Tạo list để hiển thị các projects
+	app.projectsList = widget.NewList(
+		func() int {
+			projects := app.getProjectList()
+			return len(projects)
+		},
+		func() fyne.CanvasObject {
+			return app.createProjectItem()
+		},
+		func(id widget.ListItemID, item fyne.CanvasObject) {
+			projects := app.getProjectList()
+			if id < len(projects) {
+				app.updateProjectItem(id, item, projects[id])
+			}
+		},
+	)
+
+	// Layout cho projects view với header đẹp hơn
+	content := container.NewBorder(
+		container.NewVBox(headerWithSettings, createProjectBtn, widget.NewSeparator()),
+		nil, nil, nil,
+		container.NewPadded(app.projectsList),
+	)
+
+	return content
 }
 
-func (app *TodoApp) showCompleteDialog() {
-	// This method is now replaced by individual buttons, but kept for compatibility
-	activeTodos := app.todoList.GetActiveTodos()
-	if len(activeTodos) == 0 {
-		dialog.ShowInformation("Thông báo", "Không có công việc nào chưa hoàn thành", app.window)
-		return
-	}
-	dialog.ShowInformation("Hướng dẫn", "Sử dụng nút ✅ bên cạnh mỗi công việc để đánh dấu hoàn thành", app.window)
+// showCreateProjectDialog hiển thị dialog tạo project mới
+func (app *TodoApp) showCreateProjectDialog() {
+	projectNameEntry := widget.NewEntry()
+	projectNameEntry.SetPlaceHolder("Nhập tên project...")
+
+	projectDescEntry := widget.NewMultiLineEntry()
+	projectDescEntry.SetPlaceHolder("Mô tả project (tùy chọn)...")
+	projectDescEntry.Resize(fyne.NewSize(300, 60))
+
+	form := container.NewVBox(
+		widget.NewLabel("Tên Project:"),
+		projectNameEntry,
+		widget.NewLabel("Mô tả:"),
+		projectDescEntry,
+	)
+
+	dialog.ShowCustomConfirm("Tạo Project Mới", "Tạo", "Hủy", form, func(confirmed bool) {
+		if confirmed {
+			projectName := strings.TrimSpace(projectNameEntry.Text)
+			if projectName == "" {
+				dialog.ShowError(fmt.Errorf("tên project không được để trống"), app.window)
+				return
+			}
+
+			// Kiểm tra project đã tồn tại
+			if app.projectExists(projectName) {
+				dialog.ShowError(fmt.Errorf("project '%s' đã tồn tại", projectName), app.window)
+				return
+			}
+
+			// Tạo project mới
+			err := app.createProject(projectName, projectDescEntry.Text)
+			if err != nil {
+				dialog.ShowError(err, app.window)
+				return
+			}
+
+			// Refresh projects list
+			app.projectsList.Refresh()
+
+			dialog.ShowInformation("Thành công",
+				fmt.Sprintf("Project '%s' đã được tạo thành công!", projectName), app.window)
+		}
+	}, app.window)
 }
 
-func (app *TodoApp) showDeleteDialog() {
-	// This method is now replaced by individual buttons, but kept for compatibility
-	todos := app.todoList.GetTodos()
-	if len(todos) == 0 {
-		dialog.ShowInformation("Thông báo", "Không có công việc nào để xóa", app.window)
+// getProjectList trả về danh sách tất cả projects
+func (app *TodoApp) getProjectList() []string {
+	files, err := os.ReadDir("data/project")
+	if err != nil {
+		return []string{}
+	}
+
+	var projects []string
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".txt") {
+			projectName := strings.TrimSuffix(file.Name(), ".txt")
+			projects = append(projects, projectName)
+		}
+	}
+	return projects
+}
+
+// projectExists kiểm tra project có tồn tại không
+func (app *TodoApp) projectExists(projectName string) bool {
+	filename := fmt.Sprintf("data/project/%s.txt", projectName)
+	_, err := os.Stat(filename)
+	return err == nil
+}
+
+// createProject tạo project mới
+func (app *TodoApp) createProject(projectName, description string) error {
+	filename := fmt.Sprintf("data/project/%s.txt", projectName)
+
+	// Tạo file project với header comment
+	header := fmt.Sprintf("# Project: %s\n# Description: %s\n# Created: %s\n\n",
+		projectName, description, time.Now().Format("02/01/2006 15:04"))
+
+	err := os.WriteFile(filename, []byte(header), 0644)
+	if err != nil {
+		return fmt.Errorf("không thể tạo project file: %v", err)
+	}
+
+	return nil
+}
+
+// createProjectItem tạo widget cho project item
+func (app *TodoApp) createProjectItem() fyne.CanvasObject {
+	card := widget.NewCard("", "", widget.NewLabel(""))
+	card.Resize(fyne.NewSize(700, 80))
+	return card
+}
+
+// updateProjectItem cập nhật project item
+func (app *TodoApp) updateProjectItem(id widget.ListItemID, item fyne.CanvasObject, projectName string) {
+	card := item.(*widget.Card)
+
+	// Đếm số todos trong project
+	todoCount := app.getProjectTodoCount(projectName)
+
+	// Tạo label info
+	infoLabel := widget.NewLabel(fmt.Sprintf("📋 %d todos", todoCount))
+	infoLabel.TextStyle = fyne.TextStyle{Italic: true}
+
+	// Nút mở project
+	openBtn := widget.NewButton("📂 Mở", func() {
+		app.openProject(projectName)
+	})
+	openBtn.Importance = widget.SuccessImportance
+
+	// Nút xóa project
+	deleteBtn := widget.NewButton("🗑️", func() {
+		app.confirmDeleteProject(projectName)
+	})
+	deleteBtn.Importance = widget.DangerImportance
+
+	// Layout ngang
+	layout := container.NewBorder(
+		nil, nil,
+		widget.NewLabel("📁 "+projectName),     // Trái: tên project
+		container.NewHBox(openBtn, deleteBtn), // Phải: buttons
+		infoLabel,                             // Giữa: info
+	)
+
+	card.SetContent(container.NewPadded(layout))
+}
+
+// getProjectTodoCount đếm số todos trong project
+func (app *TodoApp) getProjectTodoCount(projectName string) int {
+	filename := fmt.Sprintf("data/project/%s.txt", projectName)
+	todoList := NewTodoList(filename)
+	todos := todoList.GetTodos()
+	return len(todos)
+}
+
+// openProject mở project trong cửa sổ mới hoặc tab mới
+func (app *TodoApp) openProject(projectName string) {
+	app.currentProject = projectName
+	filename := fmt.Sprintf("data/project/%s.txt", projectName)
+	app.projectTodoList = NewTodoList(filename)
+
+	// Tạo cửa sổ mới cho project
+	projectWindow := app.myApp.NewWindow(fmt.Sprintf("📁 Project: %s", projectName))
+	projectWindow.Resize(fyne.NewSize(800, 600))
+	projectWindow.CenterOnScreen()
+
+	// Tạo UI cho project window
+	app.setupProjectWindow(projectWindow, projectName)
+
+	projectWindow.Show()
+}
+
+// confirmDeleteProject xác nhận xóa project
+func (app *TodoApp) confirmDeleteProject(projectName string) {
+	dialog.ShowConfirm("Xóa Project",
+		fmt.Sprintf("Bạn có chắc chắn muốn xóa project '%s'?\nTất cả dữ liệu sẽ bị mất vĩnh viễn!", projectName),
+		func(confirmed bool) {
+			if confirmed {
+				err := app.deleteProject(projectName)
+				if err != nil {
+					dialog.ShowError(err, app.window)
+					return
+				}
+
+				app.projectsList.Refresh()
+				dialog.ShowInformation("Thành công",
+					fmt.Sprintf("Project '%s' đã được xóa!", projectName), app.window)
+			}
+		}, app.window)
+}
+
+// deleteProject xóa project
+func (app *TodoApp) deleteProject(projectName string) error {
+	filename := fmt.Sprintf("data/project/%s.txt", projectName)
+	return os.Remove(filename)
+}
+
+// setupProjectWindow thiết lập UI cho cửa sổ project
+func (app *TodoApp) setupProjectWindow(projectWindow fyne.Window, projectName string) {
+	// Tạo todo lists cho project
+	allProjectTodos := app.createProjectList("all")
+	activeProjectTodos := app.createProjectList("active")
+	completedProjectTodos := app.createProjectList("completed")
+
+	// Tạo tabs cho project
+	app.projectTabs = container.NewAppTabs(
+		container.NewTabItem("Tất cả", allProjectTodos),
+		container.NewTabItem("Chưa hoàn thành", activeProjectTodos),
+		container.NewTabItem("Đã hoàn thành", completedProjectTodos),
+	)
+
+	// Input để thêm todo mới cho project
+	projectAddEntry := widget.NewEntry()
+	projectAddEntry.SetPlaceHolder("Nhập todo cho project " + projectName + "...")
+
+	addProjectTodoBtn := widget.NewButton("➕ Thêm Todo", func() {
+		app.addProjectTodo(projectAddEntry, projectName)
+	})
+	addProjectTodoBtn.Importance = widget.HighImportance
+
+	// Header project
+	header := widget.NewCard("", fmt.Sprintf("📁 Project: %s", projectName), nil)
+
+	// Layout cho project window
+	content := container.NewBorder(
+		container.NewVBox(
+			header,
+			container.NewBorder(nil, nil, nil, addProjectTodoBtn, projectAddEntry),
+			widget.NewSeparator(),
+		),
+		nil, nil, nil,
+		app.projectTabs,
+	)
+
+	projectWindow.SetContent(content)
+}
+
+// createProjectList tạo list cho project todos
+func (app *TodoApp) createProjectList(listType string) *widget.List {
+	list := widget.NewList(
+		func() int {
+			if app.projectTodoList == nil {
+				return 0
+			}
+			switch listType {
+			case "all":
+				return len(app.projectTodoList.GetTodos())
+			case "active":
+				return len(app.projectTodoList.GetActiveTodos())
+			case "completed":
+				return len(app.projectTodoList.GetCompletedTodos())
+			default:
+				return 0
+			}
+		},
+		func() fyne.CanvasObject {
+			return app.createTodoItem()
+		},
+		func(id widget.ListItemID, item fyne.CanvasObject) {
+			app.updateProjectTodoItem(id, item, listType)
+		},
+	)
+	return list
+}
+
+// updateProjectTodoItem cập nhật project todo item
+func (app *TodoApp) updateProjectTodoItem(id widget.ListItemID, item fyne.CanvasObject, listType string) {
+	if app.projectTodoList == nil {
 		return
 	}
-	dialog.ShowInformation("Hướng dẫn", "Sử dụng nút 🗑️ bên cạnh mỗi công việc để xóa", app.window)
+
+	var todos []Todo
+	switch listType {
+	case "all":
+		todos = app.projectTodoList.GetTodos()
+	case "active":
+		todos = app.projectTodoList.GetActiveTodos()
+	case "completed":
+		todos = app.projectTodoList.GetCompletedTodos()
+	default:
+		return
+	}
+
+	if id >= len(todos) {
+		return
+	}
+
+	todo := todos[id]
+	card := item.(*widget.Card)
+
+	// Reset card title/subtitle
+	card.SetTitle("")
+	card.SetSubTitle("")
+
+	// Tạo label ngày với font nhỏ, mờ
+	dateLabel := widget.NewLabel(todo.CreatedAt.Format("02/01/2006 15:04"))
+	dateLabel.TextStyle = fyne.TextStyle{Italic: true}
+	dateLabel.Resize(fyne.NewSize(120, 30))
+
+	// Tạo label nội dung với font lớn, đậm
+	contentLabel := widget.NewLabel(todo.Description)
+	contentLabel.TextStyle = fyne.TextStyle{Bold: true}
+	contentLabel.Wrapping = fyne.TextWrapWord
+
+	// Tạo checkbox cho trạng thái hoàn thành
+	var completeCheck *widget.Check
+	completeCheck = widget.NewCheck("", func(checked bool) {
+		if !todo.Completed && checked {
+			app.markProjectTodoComplete(todo.ID)
+		} else if todo.Completed && !checked {
+			dialog.ShowInformation("Thông báo", "Công việc đã hoàn thành không thể bỏ tích", app.window)
+			completeCheck.SetChecked(true)
+		}
+	})
+	completeCheck.SetChecked(todo.Completed)
+	completeCheck.Resize(fyne.NewSize(30, 30))
+
+	// Nút xóa
+	deleteBtn := widget.NewButton("🗑️", func() {
+		app.confirmDeleteProjectTodo(todo.ID, todo.Description)
+	})
+	deleteBtn.Resize(fyne.NewSize(40, 30))
+
+	// Buttons container
+	buttonsContainer := container.NewHBox(completeCheck, deleteBtn)
+	buttonsContainer.Resize(fyne.NewSize(80, 35))
+
+	// Layout ngang
+	horizontalLayout := container.NewBorder(
+		nil, nil,
+		dateLabel,
+		buttonsContainer,
+		contentLabel,
+	)
+
+	card.SetContent(container.NewPadded(horizontalLayout))
+}
+
+// addProjectTodo thêm todo mới cho project
+func (app *TodoApp) addProjectTodo(entry *widget.Entry, projectName string) {
+	description := strings.TrimSpace(entry.Text)
+	if description == "" {
+		dialog.ShowError(fmt.Errorf("vui lòng nhập mô tả công việc"), app.window)
+		return
+	}
+
+	if app.projectTodoList == nil {
+		dialog.ShowError(fmt.Errorf("project chưa được khởi tạo"), app.window)
+		return
+	}
+
+	err := app.projectTodoList.AddTodo(description)
+	if err != nil {
+		dialog.ShowError(err, app.window)
+		return
+	}
+
+	// Clear input
+	entry.SetText("")
+
+	// Refresh project tabs
+	if app.projectTabs != nil {
+		app.projectTabs.Refresh()
+	}
+
+	dialog.ShowInformation("Thành công",
+		fmt.Sprintf("Đã thêm công việc vào project %s: %s", projectName, description), app.window)
+}
+
+// markProjectTodoComplete đánh dấu hoàn thành todo trong project
+func (app *TodoApp) markProjectTodoComplete(todoID int) {
+	if app.projectTodoList == nil {
+		return
+	}
+
+	// Tìm todo để lấy description
+	var todoDescription string
+	for _, todo := range app.projectTodoList.GetTodos() {
+		if todo.ID == todoID {
+			todoDescription = todo.Description
+			break
+		}
+	}
+
+	err := app.projectTodoList.MarkComplete(todoID)
+	if err != nil {
+		dialog.ShowError(err, app.window)
+		return
+	}
+
+	// Refresh project tabs
+	if app.projectTabs != nil {
+		app.projectTabs.Refresh()
+	}
+
+	// Hiển thị pháo hoa
+	fireworks.ShowFireworksDialog(todoDescription, app.window)
+}
+
+// confirmDeleteProjectTodo xác nhận xóa todo trong project
+func (app *TodoApp) confirmDeleteProjectTodo(todoID int, description string) {
+	dialog.ShowConfirm("Xác nhận xóa",
+		fmt.Sprintf("Bạn có chắc chắn muốn xóa công việc:\n'%s'?", description),
+		func(confirmed bool) {
+			if confirmed {
+				if app.projectTodoList == nil {
+					return
+				}
+
+				err := app.projectTodoList.DeleteTodo(todoID)
+				if err != nil {
+					dialog.ShowError(err, app.window)
+					return
+				}
+
+				// Refresh project tabs
+				if app.projectTabs != nil {
+					app.projectTabs.Refresh()
+				}
+
+				dialog.ShowInformation("Thành công",
+					fmt.Sprintf("Đã xóa công việc: %s", description), app.window)
+			}
+		}, app.window)
+}
+
+// toggleNavbarMode chuyển đổi giữa chế độ bình thường và navbar dọc
+func (app *TodoApp) toggleNavbarMode() {
+	app.isNavbarMode = !app.isNavbarMode
+	
+	if app.isNavbarMode {
+		// Chuyển sang chế độ navbar dọc
+		app.showNavbarMode()
+	} else {
+		// Quay về chế độ bình thường
+		app.showNormalMode()
+	}
+}
+
+// showNavbarMode hiển thị giao diện navbar dọc
+func (app *TodoApp) showNavbarMode() {
+	// Tạo header cho navbar mode
+	header := widget.NewCard("", "📱 Navigation Mode", nil)
+	
+	// Header với nút quay về và settings
+	headerWithButtons := container.NewBorder(
+		nil, nil, 
+		widget.NewButton("←", func() { app.toggleNavbarMode() }), // Nút quay về
+		app.settingsButton, // Nút settings
+		header,
+	)
+	
+	// Tạo view cho todos (không có input ở đây)
+	todosView := container.NewBorder(
+		container.NewVBox(widget.NewLabel("📋 Todos Management"), widget.NewSeparator()),
+		nil, nil, nil,
+		app.tabs,
+	)
+	
+	// Tạo view cho projects
+	projectsView := app.createProjectsView()
+	
+	// Tạo nút + cho projects
+	addProjectBtn := widget.NewButton("+", func() {
+		app.showCreateProjectDialog()
+	})
+	addProjectBtn.Importance = widget.HighImportance
+
+	// Tạo dropdown để chọn project
+	projectOptions := app.getProjectList()
+	if len(projectOptions) == 0 {
+		projectOptions = []string{"Chưa có project nào"}
+	}
+	
+	projectSelect := widget.NewSelect(projectOptions, func(selected string) {
+		if selected != "" && selected != "Chưa có project nào" {
+			app.openProject(selected)
+		}
+	})
+	
+	// Set placeholder cho select
+	if len(app.getProjectList()) > 0 {
+		projectSelect.SetSelected("") // Clear selection để hiển thị placeholder
+	}
+
+	// Layout cho tab Projects với nút + và dropdown
+	projectsTabContent := container.NewVBox(
+		container.NewBorder(nil, nil, nil, addProjectBtn, 
+			widget.NewLabel("📁 Projects")),
+		projectSelect,
+		widget.NewSeparator(),
+		projectsView,
+	)
+
+	// Tạo navbar dọc với 2 tabs
+	app.navbar = container.NewAppTabs(
+		container.NewTabItem("📋 Todos", todosView),
+		container.NewTabItem("📁 Projects", projectsTabContent),
+	)
+	
+	// Layout chính cho navbar mode
+	navbarContent := container.NewBorder(
+		headerWithButtons,
+		nil, nil, nil,
+		app.navbar,
+	)
+	
+	app.window.SetContent(navbarContent)
+	app.navbarButton.SetText("←") // Đổi icon thành mũi tên quay về
+}
+
+// showNormalMode hiển thị giao diện bình thường
+func (app *TodoApp) showNormalMode() {
+	// Tạo header bình thường
+	header := widget.NewCard("", "Todo List Desktop App", nil)
+	header.Resize(fyne.NewSize(600, 60))
+	
+	// Container chính sẽ switch giữa nút Thêm và input field
+	app.inputContainer = container.NewVBox(app.addButton)
+	paddedInput := container.NewPadded(app.inputContainer)
+	
+	// Header với nút navbar và settings
+	headerWithButtons := container.NewBorder(
+		nil, nil, 
+		app.navbarButton, // Trái: nút navbar
+		container.NewHBox(app.settingsButton), // Phải: nút settings
+		header,
+	)
+	
+	// Tạo view chính
+	mainView := container.NewBorder(
+		container.NewVBox(headerWithButtons, paddedInput, widget.NewSeparator()),
+		nil, nil, nil,
+		app.tabs,
+	)
+	
+	app.window.SetContent(mainView)
+	app.navbarButton.SetText("≡") // Đổi icon về dấu "≡"
 }
