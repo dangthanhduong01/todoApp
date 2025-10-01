@@ -379,12 +379,9 @@ func NewTodoItemWidget(todo Todo, app *TodoApp) *TodoItemWidget {
 }
 
 func (app *TodoApp) createTodoItem() fyne.CanvasObject {
-	// Tạo card với size phù hợp cho 2 lines text
+	// Tạo card đơn giản với height cố định
 	card := widget.NewCard("", "", widget.NewLabel(""))
-
-	// Set size với height đủ cho title + spacer + time
-	card.Resize(fyne.NewSize(750, 85))
-
+	card.Resize(fyne.NewSize(750, 120)) // Height cố định để tránh overlap
 	return card
 }
 
@@ -408,68 +405,54 @@ func (app *TodoApp) updateTodoItem(id widget.ListItemID, item fyne.CanvasObject,
 	todo := todos[id]
 	card := item.(*widget.Card)
 
-	// Reset card title và subtitle
+	// Reset card title/subtitle
 	card.SetTitle("")
 	card.SetSubTitle("")
 
-	// Tạo nội dung todo với text truncation
-	status := "📌"
-	if todo.Completed {
-		status = "✅"
-	}
+	// Tạo label ngày với font nhỏ, mờ
+	dateLabel := widget.NewLabel(todo.CreatedAt.Format("02/01/2006 15:04"))
+	dateLabel.TextStyle = fyne.TextStyle{Italic: true}
+	dateLabel.Resize(fyne.NewSize(120, 30)) // Fixed width cho date
 
-	// Truncate description nếu quá dài (>50 characters)
-	description := todo.Description
-	if len(description) > 50 {
-		description = description[:47] + "..."
-	}
+	// Tạo label nội dung với font lớn, đậm
+	contentLabel := widget.NewLabel(todo.Description)
+	contentLabel.TextStyle = fyne.TextStyle{Bold: true}
+	contentLabel.Wrapping = fyne.TextWrapWord
 
-	todoTitle := widget.NewLabel(fmt.Sprintf("%s %s", status, description))
-	todoTitle.TextStyle = fyne.TextStyle{Bold: true}
-	todoTitle.Truncation = fyne.TextTruncateEllipsis
-
-	todoTime := widget.NewLabel(fmt.Sprintf("Thêm: %s", todo.CreatedAt.Format("02/01 15:04")))
-	todoTime.TextStyle = fyne.TextStyle{Italic: true}
-
-	// Container cho nội dung với spacing rõ ràng giữa title và time
-	todoContent := container.NewVBox(
-		todoTitle,
-		widget.NewLabel(""), // Spacer line for separation
-		todoTime,
-	)
-
-	// Tạo buttons nằm ngang (bên phải)
-	completeBtn := widget.NewButton("✅", func() {
-		if todo.Completed {
-			dialog.ShowInformation("Thông báo", "Công việc này đã hoàn thành", app.window)
-		} else {
+	// Tạo checkbox cho trạng thái hoàn thành
+	var completeCheck *widget.Check
+	completeCheck = widget.NewCheck("", func(checked bool) {
+		if !todo.Completed && checked {
+			// Chỉ cho phép đánh dấu hoàn thành, không cho phép bỏ tích
 			app.markComplete(todo.ID)
+		} else if todo.Completed && !checked {
+			dialog.ShowInformation("Thông báo", "Công việc đã hoàn thành không thể bỏ tích", app.window)
+			// Reset lại trạng thái checkbox
+			completeCheck.SetChecked(true)
 		}
 	})
+	completeCheck.SetChecked(todo.Completed)
+	completeCheck.Resize(fyne.NewSize(30, 30))
 
+	// Nút xóa
 	deleteBtn := widget.NewButton("🗑️", func() {
 		app.confirmDelete(todo.ID, todo.Description)
 	})
+	deleteBtn.Resize(fyne.NewSize(40, 30))
 
-	// Style buttons compact - không có màu nền
-	if todo.Completed {
-		completeBtn.SetText("✓")
-	} else {
-		completeBtn.SetText("✅")
-	}
-	// Không set importance để buttons không có màu nền
+	// Buttons container với checkbox và nút xóa
+	buttonsContainer := container.NewHBox(completeCheck, deleteBtn)
+	buttonsContainer.Resize(fyne.NewSize(80, 35))
 
-	// Buttons nằm ngang với khoảng cách nhỏ
-	buttonContainer := container.NewHBox(completeBtn, deleteBtn)
-
-	// Layout chính với spacing rõ ràng
-	content := container.NewBorder(
-		nil, nil, nil,
-		container.NewPadded(buttonContainer), // Add padding around buttons
-		container.NewPadded(todoContent),     // Add padding around content
+	// Layout ngang: ngày bên trái, nội dung ở giữa (expand), buttons bên phải
+	horizontalLayout := container.NewBorder(
+		nil, nil,
+		dateLabel,           // Trái: ngày tạo
+		buttonsContainer,    // Phải: buttons
+		contentLabel,        // Giữa: nội dung (sẽ expand)
 	)
 
-	card.SetContent(content)
+	card.SetContent(container.NewPadded(horizontalLayout))
 }
 
 func (app *TodoApp) addTodo() {
