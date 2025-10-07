@@ -48,6 +48,7 @@ type TodoApp struct {
 	currentProject        string
 	projectColor          string
 	projectThemeInfo      *widget.Label
+	cleanProjectTabContent fyne.CanvasObject // Store clean project tab content for theme reset
 }
 
 // main initializes and starts the application
@@ -205,11 +206,6 @@ func (app *TodoApp) setupProjectTab() *fyne.Container {
 	projectButtons := container.NewHBox(projectSettingsBtn, addProjectBtn)
 	projectSelector := container.NewBorder(nil, nil, nil, projectButtons, app.projectSelect)
 
-	// Project todo lists
-	app.projectAllList = app.createList("all", true)
-	app.projectActiveList = app.createList("active", true)
-	app.projectCompletedList = app.createList("completed", true)
-
 	// Project todo input
 	app.projectTodoEntry = widget.NewEntry()
 	app.projectTodoEntry.SetPlaceHolder("Nhập công việc cho project...")
@@ -236,6 +232,17 @@ func (app *TodoApp) setupProjectTab() *fyne.Container {
 
 	projectTodoInputContainer := container.NewBorder(nil, nil, nil, addProjectTodoBtn, app.projectTodoEntry)
 
+	// Project todo lists - create if not exists
+	if app.projectAllList == nil {
+		app.projectAllList = app.createList("all", true)
+	}
+	if app.projectActiveList == nil {
+		app.projectActiveList = app.createList("active", true)
+	}
+	if app.projectCompletedList == nil {
+		app.projectCompletedList = app.createList("completed", true)
+	}
+
 	// Project sub-tabs
 	projectSubTabs := container.NewAppTabs(
 		container.NewTabItem("Tất cả", container.NewScroll(app.projectAllList)),
@@ -249,7 +256,7 @@ func (app *TodoApp) setupProjectTab() *fyne.Container {
 	// Project theme info - will be updated when project is loaded
 	themeInfo := widget.NewLabel("Chưa chọn project")
 	themeInfo.TextStyle = fyne.TextStyle{Italic: true}
-	
+
 	// Store reference for updating later
 	app.projectThemeInfo = themeInfo
 
@@ -512,7 +519,7 @@ func (app *TodoApp) handleTodoSelection(id widget.ListItemID, listType string, i
 		completeBtn.Importance = widget.SuccessImportance
 
 		deleteBtn := widget.NewButton("🗑️ Xóa", func() {
-		 app.confirmDelete(todo.ID, todo.Description, isProject)
+			app.confirmDelete(todo.ID, todo.Description, isProject)
 		})
 		deleteBtn.Importance = widget.DangerImportance
 
@@ -1070,6 +1077,101 @@ func (app *TodoApp) updateProjectFile(projectName, color, backgroundImage string
 	os.WriteFile(filename, []byte(updatedContent), 0644)
 }
 
+// resetProjectTabContent resets project tab to clean state without theme
+func (app *TodoApp) resetProjectTabContent(projectTab *container.TabItem) {
+	// Store original content structure without theme layers
+	if projectTab == nil {
+		return
+	}
+	
+	// Get the base project content without any theme containers
+	baseContent := app.getBaseProjectTabContent()
+	projectTab.Content = baseContent
+}
+
+// getBaseProjectTabContent returns the base project tab content without theme layers
+func (app *TodoApp) getBaseProjectTabContent() *fyne.Container {
+	// Project selection
+	if app.projectSelect == nil {
+		return container.NewVBox(widget.NewLabel("Loading..."))
+	}
+
+	// Create project button
+	addProjectBtn := widget.NewButton("+ Tạo Project", func() {
+		app.showCreateProjectDialog()
+	})
+	addProjectBtn.Importance = widget.HighImportance
+
+	// Project settings button
+	projectSettingsBtn := widget.NewButton("🎨 Theme", func() {
+		if app.currentProject == "" {
+			dialog.ShowInformation("Thông báo", "Chọn project trước khi thay đổi theme", app.window)
+			return
+		}
+		app.showProjectThemeDialog()
+	})
+	projectSettingsBtn.Importance = widget.MediumImportance
+
+	projectButtons := container.NewHBox(projectSettingsBtn, addProjectBtn)
+	projectSelector := container.NewBorder(nil, nil, nil, projectButtons, app.projectSelect)
+
+	// Project todo input
+	if app.projectTodoEntry == nil {
+		app.projectTodoEntry = widget.NewEntry()
+		app.projectTodoEntry.SetPlaceHolder("Nhập công việc cho project...")
+		
+		// Enter key support
+		app.projectTodoEntry.OnSubmitted = func(text string) {
+			if app.currentProject == "" {
+				dialog.ShowInformation("Thông báo", "Chọn project trước khi thêm todo", app.window)
+				return
+			}
+			app.addTodo(text, true)
+			app.projectTodoEntry.SetText("")
+		}
+	}
+
+	addProjectTodoBtn := widget.NewButton("+ Thêm", func() {
+		if app.currentProject == "" {
+			dialog.ShowInformation("Thông báo", "Chọn project trước khi thêm todo", app.window)
+			return
+		}
+		app.addTodo(app.projectTodoEntry.Text, true)
+		app.projectTodoEntry.SetText("")
+	})
+	addProjectTodoBtn.Importance = widget.HighImportance
+
+	projectTodoInputContainer := container.NewBorder(nil, nil, nil, addProjectTodoBtn, app.projectTodoEntry)
+
+	// Project sub-tabs
+	projectSubTabs := container.NewAppTabs(
+		container.NewTabItem("Tất cả", container.NewScroll(app.projectAllList)),
+		container.NewTabItem("Chưa hoàn thành", container.NewScroll(app.projectActiveList)),
+		container.NewTabItem("Đã hoàn thành", container.NewScroll(app.projectCompletedList)),
+	)
+
+	// Project theme info
+	if app.projectThemeInfo == nil {
+		app.projectThemeInfo = widget.NewLabel("Chưa chọn project")
+		app.projectThemeInfo.TextStyle = fyne.TextStyle{Italic: true}
+	}
+
+	// Main container
+	return container.NewBorder(
+		container.NewVBox(
+			widget.NewLabel("📁 Quản lý Projects"),
+			app.projectThemeInfo,
+			widget.NewSeparator(),
+			projectSelector,
+			widget.NewSeparator(),
+			projectTodoInputContainer,
+			widget.NewSeparator(),
+		),
+		nil, nil, nil,
+		projectSubTabs,
+	)
+}
+
 // applyProjectTheme applies theme specific to the project tab
 func (app *TodoApp) applyProjectTheme() {
 	if app.projectList == nil || app.tabs == nil {
@@ -1104,15 +1206,24 @@ func (app *TodoApp) applyProjectTheme() {
 		app.projectThemeInfo.Refresh()
 	}
 
+	// Store reference to clean project tab content for restoration
+	if app.cleanProjectTabContent == nil {
+		app.cleanProjectTabContent = projectTab.Content
+	}
+	
+	// Always start with clean content to remove previous theme layers
+	projectTab.Content = app.cleanProjectTabContent
+	
 	// Apply background image safely if available and file exists
 	if backgroundImage != "" {
 		if _, err := os.Stat(backgroundImage); err == nil {
 			themedContent := app.createProjectThemedContainer(projectTab.Content)
 			projectTab.Content = themedContent
-			app.tabs.Refresh()
 		}
 	}
 	
+	app.tabs.Refresh()
+
 	fmt.Printf("🎨 Applied project theme: %s (color: %s, image: %s)\n",
 		projectName, projectColor, backgroundImage)
 }
@@ -1131,7 +1242,7 @@ func (app *TodoApp) createProjectThemedContainer(originalContent fyne.CanvasObje
 			if err == nil {
 				// Create background image
 				backgroundImage := widget.NewIcon(imageResource)
-				
+
 				// Stack background image behind content
 				return container.NewStack(
 					backgroundImage,
@@ -1152,14 +1263,14 @@ func (app *TodoApp) createColorBackground(projectColor string) fyne.CanvasObject
 	// Create a simple colored card as background
 	colorEmoji := app.getColorEmoji(projectColor)
 	colorName := strings.ToUpper(projectColor)
-	
+
 	// Create a subtle indicator card
 	colorCard := widget.NewCard("", fmt.Sprintf("%s %s Theme", colorEmoji, colorName), nil)
-	
+
 	// Create a container with very light background color indication
 	colorIndicator := widget.NewLabel("")
 	colorIndicator.Resize(fyne.NewSize(2000, 2000))
-	
+
 	return container.NewStack(colorIndicator, colorCard)
 }
 
@@ -1220,14 +1331,14 @@ func (app *TodoApp) migrateOldProjectFile(projectName string) {
 func (app *TodoApp) createThemedProjectTabContent(themeMessage string) *fyne.Container {
 	// Don't recreate the entire tab content, just return the existing one with theme info
 	// This approach is simpler and avoids widget conflicts
-	
+
 	// Theme info label
 	themeInfoLabel := widget.NewLabel(themeMessage)
 	themeInfoLabel.TextStyle = fyne.TextStyle{Italic: true, Bold: true}
 
 	// Get existing project tab content and wrap with theme info
 	existingContent := app.setupProjectTab()
-	
+
 	// Wrap with theme background if available
 	if app.projectList != nil && (app.projectList.HasBackgroundImage() || app.projectList.GetColor() != "blue") {
 		themedContent := app.createProjectThemedContainer(existingContent)
