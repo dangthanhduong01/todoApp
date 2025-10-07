@@ -1,2 +1,6 @@
+# Project: wee
+# Color: blue
+# Created: 2025-10-07 16:28:59
+
 1|sw|true|2025-10-07T12:15:44+07:00
 2|asdsd|false|2025-10-07T12:24:41+07:00

@@ -48,7 +48,6 @@ type TodoApp struct {
 	currentProject        string
 	projectColor          string
 	projectThemeInfo      *widget.Label
-	cleanProjectTabContent fyne.CanvasObject // Store clean project tab content for theme reset
 }
 
 // main initializes and starts the application
@@ -1083,7 +1082,7 @@ func (app *TodoApp) resetProjectTabContent(projectTab *container.TabItem) {
 	if projectTab == nil {
 		return
 	}
-	
+
 	// Get the base project content without any theme containers
 	baseContent := app.getBaseProjectTabContent()
 	projectTab.Content = baseContent
@@ -1119,7 +1118,7 @@ func (app *TodoApp) getBaseProjectTabContent() *fyne.Container {
 	if app.projectTodoEntry == nil {
 		app.projectTodoEntry = widget.NewEntry()
 		app.projectTodoEntry.SetPlaceHolder("Nhập công việc cho project...")
-		
+
 		// Enter key support
 		app.projectTodoEntry.OnSubmitted = func(text string) {
 			if app.currentProject == "" {
@@ -1206,22 +1205,23 @@ func (app *TodoApp) applyProjectTheme() {
 		app.projectThemeInfo.Refresh()
 	}
 
-	// Store reference to clean project tab content for restoration
-	if app.cleanProjectTabContent == nil {
-		app.cleanProjectTabContent = projectTab.Content
-	}
-	
-	// Always start with clean content to remove previous theme layers
-	projectTab.Content = app.cleanProjectTabContent
-	
+	// Get fresh project tab content to ensure all widgets are properly updated
+	baseProjectContent := app.getBaseProjectTabContent()
+
 	// Apply background image safely if available and file exists
 	if backgroundImage != "" {
 		if _, err := os.Stat(backgroundImage); err == nil {
-			themedContent := app.createProjectThemedContainer(projectTab.Content)
+			themedContent := app.createProjectThemedContainer(baseProjectContent)
 			projectTab.Content = themedContent
+		} else {
+			// File doesn't exist, use base content without background
+			projectTab.Content = baseProjectContent
 		}
+	} else {
+		// No background image, use base content
+		projectTab.Content = baseProjectContent
 	}
-	
+
 	app.tabs.Refresh()
 
 	fmt.Printf("🎨 Applied project theme: %s (color: %s, image: %s)\n",
