@@ -47,7 +47,8 @@ func (tl *TodoList) LoadFromFile() {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
+		if line == "" || strings.HasPrefix(line, "#") {
+			// Skip empty lines and header metadata
 			continue
 		}
 
@@ -81,8 +82,26 @@ func (tl *TodoList) LoadFromFile() {
 	}
 }
 
-// SaveToFile saves todos to the text file
+// SaveToFile saves todos to the text file while preserving header metadata
 func (tl *TodoList) SaveToFile() error {
+	// Read existing header metadata
+	var headerLines []string
+	if existingFile, err := os.Open(tl.filename); err == nil {
+		defer existingFile.Close()
+		scanner := bufio.NewScanner(existingFile)
+		for scanner.Scan() {
+			line := scanner.Text()
+			// Keep header lines (starting with #) and empty lines before todos
+			if strings.HasPrefix(line, "#") || (strings.TrimSpace(line) == "" && len(headerLines) > 0) {
+				headerLines = append(headerLines, line)
+			} else if strings.Contains(line, "|") {
+				// Stop when we hit todo data
+				break
+			}
+		}
+	}
+
+	// Create new file
 	file, err := os.Create(tl.filename)
 	if err != nil {
 		return err
@@ -92,6 +111,12 @@ func (tl *TodoList) SaveToFile() error {
 	writer := bufio.NewWriter(file)
 	defer writer.Flush()
 
+	// Write header metadata first
+	for _, headerLine := range headerLines {
+		writer.WriteString(headerLine + "\n")
+	}
+
+	// Write todo data
 	for _, todo := range tl.todos {
 		line := fmt.Sprintf("%d|%s|%t|%s\n",
 			todo.ID,
@@ -170,4 +195,65 @@ func (tl *TodoList) GetCompletedTodos() []Todo {
 		}
 	}
 	return completed
+}
+
+// ProjectList extends TodoList with project-specific features
+type ProjectList struct {
+	*TodoList              // Embedded TodoList for inheritance
+	Color           string // Project color theme
+	Theme           string // Theme name (e.g., "blue", "red", "green")
+	Name            string // Project name
+	BackgroundImage string // Background image path for project theme
+}
+
+// NewProjectList creates a new ProjectList instance
+func NewProjectList(filename, name, color, theme, backgroundImage string) *ProjectList {
+	pl := &ProjectList{
+		TodoList:        NewTodoList(filename),
+		Color:           color,
+		Theme:           theme,
+		Name:            name,
+		BackgroundImage: backgroundImage,
+	}
+	return pl
+}
+
+// GetColor returns the project color
+func (pl *ProjectList) GetColor() string {
+	return pl.Color
+}
+
+// SetColor sets the project color
+func (pl *ProjectList) SetColor(color string) {
+	pl.Color = color
+}
+
+// GetTheme returns the project theme
+func (pl *ProjectList) GetTheme() string {
+	return pl.Theme
+}
+
+// SetTheme sets the project theme
+func (pl *ProjectList) SetTheme(theme string) {
+	pl.Theme = theme
+}
+
+// GetName returns the project name
+func (pl *ProjectList) GetName() string {
+	return pl.Name
+}
+
+// GetBackgroundImage returns the project background image path
+func (pl *ProjectList) GetBackgroundImage() string {
+	return pl.BackgroundImage
+}
+
+// SetBackgroundImage sets the project background image path
+func (pl *ProjectList) SetBackgroundImage(imagePath string) {
+	pl.BackgroundImage = imagePath
+}
+
+// HasBackgroundImage checks if project has a background image
+func (pl *ProjectList) HasBackgroundImage() bool {
+	return pl.BackgroundImage != ""
 }

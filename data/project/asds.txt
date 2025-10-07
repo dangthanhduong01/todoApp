@@ -1,2 +1,9 @@
-1|sds|false|2025-10-07T14:40:20+07:00
-2|sadsa|false|2025-10-07T14:53:19+07:00
+# Project: asds
+# Color: blue
+# BackgroundImage: data/themes/images/Screenshot from 2025-08-29 10-42-04.png
+# Created: 2025-10-07 15:51:17
+
+1|sds|true|2025-10-07T14:40:20+07:00
+2|sadsa|true|2025-10-07T14:53:19+07:00
+3|asdsd|true|2025-10-07T14:59:52+07:00
+4|sad|false|2025-10-07T15:06:17+07:00

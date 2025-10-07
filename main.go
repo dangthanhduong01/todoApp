@@ -22,7 +22,7 @@ import (
 // TodoApp represents the main application structure
 type TodoApp struct {
 	todoList    *TodoList          // Backend todo list for main todos
-	projectList *TodoList          // Backend todo list for selected project
+	projectList *ProjectList       // Backend project list for selected project
 	window      fyne.Window        // Main application window
 	tabs        *container.AppTabs // Tab container
 	myApp       fyne.App           // Reference to the Fyne application
@@ -47,6 +47,7 @@ type TodoApp struct {
 	projectTodoEntry      *widget.Entry
 	currentProject        string
 	projectColor          string
+	projectThemeInfo      *widget.Label
 }
 
 // main initializes and starts the application
@@ -123,6 +124,11 @@ func (app *TodoApp) setupUI() {
 	app.refreshAllLists()
 	app.applyTheme()
 
+	// Apply project theme if there's an active project
+	if app.projectList != nil && app.currentProject != "" {
+		app.applyProjectTheme()
+	}
+
 	fmt.Println("🎛️ UI setup complete")
 }
 
@@ -186,7 +192,18 @@ func (app *TodoApp) setupProjectTab() *fyne.Container {
 	})
 	addProjectBtn.Importance = widget.HighImportance
 
-	projectSelector := container.NewBorder(nil, nil, nil, addProjectBtn, app.projectSelect)
+	// Project settings button
+	projectSettingsBtn := widget.NewButton("🎨 Theme", func() {
+		if app.currentProject == "" {
+			dialog.ShowInformation("Thông báo", "Chọn project trước khi thay đổi theme", app.window)
+			return
+		}
+		app.showProjectThemeDialog()
+	})
+	projectSettingsBtn.Importance = widget.MediumImportance
+
+	projectButtons := container.NewHBox(projectSettingsBtn, addProjectBtn)
+	projectSelector := container.NewBorder(nil, nil, nil, projectButtons, app.projectSelect)
 
 	// Project todo lists
 	app.projectAllList = app.createList("all", true)
@@ -229,10 +246,18 @@ func (app *TodoApp) setupProjectTab() *fyne.Container {
 	// Load available projects
 	app.refreshProjectList()
 
+	// Project theme info - will be updated when project is loaded
+	themeInfo := widget.NewLabel("Chưa chọn project")
+	themeInfo.TextStyle = fyne.TextStyle{Italic: true}
+	
+	// Store reference for updating later
+	app.projectThemeInfo = themeInfo
+
 	// Main container
 	return container.NewBorder(
 		container.NewVBox(
 			widget.NewLabel("📁 Quản lý Projects"),
+			themeInfo,
 			widget.NewSeparator(),
 			projectSelector,
 			widget.NewSeparator(),
@@ -487,7 +512,7 @@ func (app *TodoApp) handleTodoSelection(id widget.ListItemID, listType string, i
 		completeBtn.Importance = widget.SuccessImportance
 
 		deleteBtn := widget.NewButton("🗑️ Xóa", func() {
-			app.confirmDelete(todo.ID, todo.Description, isProject)
+		 app.confirmDelete(todo.ID, todo.Description, isProject)
 		})
 		deleteBtn.Importance = widget.DangerImportance
 
@@ -581,15 +606,23 @@ func (app *TodoApp) refreshProjectList() {
 func (app *TodoApp) loadProject(projectName string) {
 	app.currentProject = projectName
 	filename := fmt.Sprintf("data/project/%s.txt", projectName)
-	app.projectList = NewTodoList(filename)
 
-	// Get project color
-	app.projectColor = app.getProjectColor(projectName)
+	// Migrate old project file format if needed
+	app.migrateOldProjectFile(projectName)
 
-	// Refresh project lists
+	// Get project color, theme and background image
+	projectColor := app.getProjectColor(projectName)
+	backgroundImage := app.getProjectBackgroundImage(projectName)
+	app.projectColor = projectColor
+
+	// Create ProjectList with color, theme and background image
+	app.projectList = NewProjectList(filename, projectName, projectColor, projectColor, backgroundImage)
+
+	// Refresh project lists and apply project theme
 	app.refreshAllLists()
+	app.applyProjectTheme()
 
-	fmt.Printf("📁 Loaded project: %s (%s)\n", projectName, app.projectColor)
+	fmt.Printf("📁 Loaded project: %s (%s) - Background: %s\n", projectName, app.projectList.GetColor(), backgroundImage)
 }
 
 // getProjectColor returns the color for a project
@@ -609,6 +642,23 @@ func (app *TodoApp) getProjectColor(projectName string) string {
 	return "blue"
 }
 
+// getProjectBackgroundImage returns the background image for a project
+func (app *TodoApp) getProjectBackgroundImage(projectName string) string {
+	filename := filepath.Join("data/project", projectName+".txt")
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		return ""
+	}
+
+	lines := strings.Split(string(content), "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "# BackgroundImage: ") {
+			return strings.TrimSpace(strings.TrimPrefix(line, "# BackgroundImage: "))
+		}
+	}
+	return ""
+}
+
 // showCreateProjectDialog shows the create project dialog
 func (app *TodoApp) showCreateProjectDialog() {
 	nameEntry := widget.NewEntry()
@@ -617,28 +667,60 @@ func (app *TodoApp) showCreateProjectDialog() {
 	colorSelect := widget.NewSelect([]string{"blue", "red", "green", "yellow", "orange", "purple", "brown", "black"}, nil)
 	colorSelect.SetSelected("blue")
 
+	// Background image selection
+	var selectedImagePath string
+	imageLabel := widget.NewLabel("Chưa chọn ảnh nền")
+
+	selectImageBtn := widget.NewButton("📁 Chọn ảnh nền", func() {
+		app.showImageSelectionDialog(func(imagePath string) {
+			selectedImagePath = imagePath
+			if imagePath != "" {
+				imageLabel.SetText("✅ Đã chọn: " + filepath.Base(imagePath))
+			} else {
+				imageLabel.SetText("Chưa chọn ảnh nền")
+			}
+		})
+	})
+
+	clearImageBtn := widget.NewButton("🗑️ Xóa ảnh", func() {
+		selectedImagePath = ""
+		imageLabel.SetText("Chưa chọn ảnh nền")
+	})
+
+	imageContainer := container.NewHBox(selectImageBtn, clearImageBtn)
+
 	form := container.NewVBox(
 		widget.NewLabel("Tạo Project Mới"),
 		widget.NewSeparator(),
 		widget.NewFormItem("Tên:", nameEntry).Widget,
 		widget.NewFormItem("Màu:", colorSelect).Widget,
+		widget.NewFormItem("Ảnh nền:", imageContainer).Widget,
+		imageLabel,
 	)
 
 	dialog.ShowCustomConfirm("Tạo Project", "Tạo", "Hủy", form, func(response bool) {
 		if response && nameEntry.Text != "" && colorSelect.Selected != "" {
-			app.createProject(nameEntry.Text, colorSelect.Selected)
+			app.createProject(nameEntry.Text, colorSelect.Selected, selectedImagePath)
 		}
 	}, app.window)
 }
 
 // createProject creates a new project
-func (app *TodoApp) createProject(name, color string) {
+func (app *TodoApp) createProject(name, color string, backgroundImage ...string) {
 	projectDir := "data/project"
 	os.MkdirAll(projectDir, 0755)
 
 	filename := filepath.Join(projectDir, name+".txt")
-	content := fmt.Sprintf("# Project: %s\n# Color: %s\n# Created: %s\n\n",
+
+	// Build content with optional background image
+	content := fmt.Sprintf("# Project: %s\n# Color: %s\n# Created: %s\n",
 		name, color, time.Now().Format("2006-01-02 15:04:05"))
+
+	if len(backgroundImage) > 0 && backgroundImage[0] != "" {
+		content += fmt.Sprintf("# BackgroundImage: %s\n", backgroundImage[0])
+	}
+
+	content += "\n"
 
 	err := os.WriteFile(filename, []byte(content), 0644)
 	if err != nil {
@@ -649,7 +731,189 @@ func (app *TodoApp) createProject(name, color string) {
 	app.refreshProjectList()
 	app.projectSelect.SetSelected(name)
 
-	dialog.ShowInformation("Thành công", fmt.Sprintf("Đã tạo project: %s", name), app.window)
+	imageInfo := ""
+	if len(backgroundImage) > 0 && backgroundImage[0] != "" {
+		imageInfo = " với ảnh nền"
+	}
+
+	dialog.ShowInformation("Thành công", fmt.Sprintf("Đã tạo project: %s%s", name, imageInfo), app.window)
+}
+
+// showImageSelectionDialog shows dialog to select background image
+func (app *TodoApp) showImageSelectionDialog(callback func(string)) {
+	// Create file dialog for image selection
+	fileDialog := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
+		if err != nil {
+			dialog.ShowError(err, app.window)
+			callback("")
+			return
+		}
+		if reader == nil {
+			callback("")
+			return
+		}
+		defer reader.Close()
+
+		// Get file path
+		uri := reader.URI()
+		imagePath := uri.Path()
+
+		// Validate image file extension
+		ext := strings.ToLower(filepath.Ext(imagePath))
+		validExts := []string{".jpg", ".jpeg", ".png", ".gif", ".bmp"}
+
+		isValidImage := false
+		for _, validExt := range validExts {
+			if ext == validExt {
+				isValidImage = true
+				break
+			}
+		}
+
+		if !isValidImage {
+			dialog.ShowError(fmt.Errorf("định dạng file không hỗ trợ. Chỉ chấp nhận: %s", strings.Join(validExts, ", ")), app.window)
+			callback("")
+			return
+		}
+
+		// Copy image to themes directory
+		themesDir := "data/themes/images"
+		os.MkdirAll(themesDir, 0755)
+
+		destPath := filepath.Join(themesDir, filepath.Base(imagePath))
+
+		// Copy file
+		sourceFile, err := os.Open(imagePath)
+		if err != nil {
+			dialog.ShowError(fmt.Errorf("không thể mở file: %v", err), app.window)
+			callback("")
+			return
+		}
+		defer sourceFile.Close()
+
+		destFile, err := os.Create(destPath)
+		if err != nil {
+			dialog.ShowError(fmt.Errorf("không thể tạo file đích: %v", err), app.window)
+			callback("")
+			return
+		}
+		defer destFile.Close()
+
+		// Copy content
+		_, err = sourceFile.Seek(0, 0)
+		if err == nil {
+			_, err = destFile.ReadFrom(sourceFile)
+		}
+
+		if err != nil {
+			dialog.ShowError(fmt.Errorf("không thể copy file: %v", err), app.window)
+			callback("")
+			return
+		}
+
+		callback(destPath)
+	}, app.window)
+
+	fileDialog.Show()
+}
+
+// showProjectThemeDialog shows dialog to change current project theme
+func (app *TodoApp) showProjectThemeDialog() {
+	if app.projectList == nil || app.currentProject == "" {
+		return
+	}
+
+	currentColor := app.projectList.GetColor()
+	currentImage := app.projectList.GetBackgroundImage()
+
+	// Color selection
+	colorSelect := widget.NewSelect([]string{"blue", "red", "green", "yellow", "orange", "purple", "brown", "black"}, nil)
+	colorSelect.SetSelected(currentColor)
+
+	// Current background image info
+	var imageLabel *widget.Label
+	if currentImage != "" {
+		imageLabel = widget.NewLabel("✅ Hiện tại: " + filepath.Base(currentImage))
+	} else {
+		imageLabel = widget.NewLabel("Chưa có ảnh nền")
+	}
+
+	var selectedImagePath string = currentImage
+
+	// Background image selection
+	selectImageBtn := widget.NewButton("📁 Chọn ảnh mới", func() {
+		app.showImageSelectionDialog(func(imagePath string) {
+			selectedImagePath = imagePath
+			if imagePath != "" {
+				imageLabel.SetText("✅ Mới: " + filepath.Base(imagePath))
+			} else {
+				imageLabel.SetText("Chưa có ảnh nền")
+			}
+		})
+	})
+
+	clearImageBtn := widget.NewButton("🗑️ Xóa ảnh", func() {
+		selectedImagePath = ""
+		imageLabel.SetText("Chưa có ảnh nền")
+	})
+
+	// Preview button
+	previewBtn := widget.NewButton("👁️ Xem trước", func() {
+		if selectedImagePath != "" && selectedImagePath != currentImage {
+			dialog.ShowInformation("Xem trước",
+				fmt.Sprintf("Ảnh nền mới: %s\nMàu: %s",
+					filepath.Base(selectedImagePath),
+					colorSelect.Selected),
+				app.window)
+		} else {
+			dialog.ShowInformation("Xem trước",
+				fmt.Sprintf("Màu hiện tại: %s\nẢnh nền: %s",
+					colorSelect.Selected,
+					func() string {
+						if currentImage != "" {
+							return filepath.Base(currentImage)
+						}
+						return "Không có"
+					}()),
+				app.window)
+		}
+	})
+
+	imageContainer := container.NewHBox(selectImageBtn, clearImageBtn, previewBtn)
+
+	form := container.NewVBox(
+		widget.NewCard("", "🎨 Cài đặt Theme Project",
+			widget.NewLabel(fmt.Sprintf("Project: %s", app.currentProject))),
+		widget.NewSeparator(),
+		widget.NewFormItem("Màu chủ đề:", colorSelect).Widget,
+		widget.NewFormItem("Ảnh nền:", imageContainer).Widget,
+		imageLabel,
+	)
+
+	dialog.ShowCustomConfirm("Cài đặt Theme", "✅ Áp dụng", "❌ Hủy", form, func(response bool) {
+		if response {
+			// Update project theme
+			newColor := colorSelect.Selected
+			if newColor == "" {
+				newColor = currentColor
+			}
+
+			app.projectList.SetColor(newColor)
+			app.projectList.SetTheme(newColor)
+			app.projectList.SetBackgroundImage(selectedImagePath)
+			app.projectColor = newColor
+
+			// Update project file
+			app.updateProjectFile(app.currentProject, newColor, selectedImagePath)
+
+			// Apply new theme
+			app.applyProjectTheme()
+
+			dialog.ShowInformation("Thành công",
+				fmt.Sprintf("Đã cập nhật theme cho project %s", app.currentProject),
+				app.window)
+		}
+	}, app.window)
 }
 
 // showSettingsDialog shows the settings dialog
@@ -744,4 +1008,231 @@ func (t *customLightTheme) Icon(name fyne.ThemeIconName) fyne.Resource {
 
 func (t *customLightTheme) Size(name fyne.ThemeSizeName) float32 {
 	return theme.DefaultTheme().Size(name)
+}
+
+// updateProjectFile updates the project file with new color and background image information
+func (app *TodoApp) updateProjectFile(projectName, color, backgroundImage string) {
+	filename := filepath.Join("data/project", projectName+".txt")
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		return
+	}
+
+	lines := strings.Split(string(content), "\n")
+	colorUpdated := false
+	backgroundUpdated := false
+
+	for i, line := range lines {
+		if strings.HasPrefix(line, "# Color: ") {
+			lines[i] = fmt.Sprintf("# Color: %s", color)
+			colorUpdated = true
+		} else if strings.HasPrefix(line, "# BackgroundImage: ") {
+			if backgroundImage != "" {
+				lines[i] = fmt.Sprintf("# BackgroundImage: %s", backgroundImage)
+			} else {
+				// Remove background image line if empty
+				lines = append(lines[:i], lines[i+1:]...)
+			}
+			backgroundUpdated = true
+		}
+	}
+
+	// Add missing fields if not found
+	if !colorUpdated {
+		// Insert after project name line
+		for i, line := range lines {
+			if strings.HasPrefix(line, "# Project: ") {
+				newLines := make([]string, 0, len(lines)+1)
+				newLines = append(newLines, lines[:i+1]...)
+				newLines = append(newLines, fmt.Sprintf("# Color: %s", color))
+				newLines = append(newLines, lines[i+1:]...)
+				lines = newLines
+				break
+			}
+		}
+	}
+
+	if !backgroundUpdated && backgroundImage != "" {
+		// Insert after color line
+		for i, line := range lines {
+			if strings.HasPrefix(line, "# Color: ") {
+				newLines := make([]string, 0, len(lines)+1)
+				newLines = append(newLines, lines[:i+1]...)
+				newLines = append(newLines, fmt.Sprintf("# BackgroundImage: %s", backgroundImage))
+				newLines = append(newLines, lines[i+1:]...)
+				lines = newLines
+				break
+			}
+		}
+	}
+
+	updatedContent := strings.Join(lines, "\n")
+	os.WriteFile(filename, []byte(updatedContent), 0644)
+}
+
+// applyProjectTheme applies theme specific to the project tab
+func (app *TodoApp) applyProjectTheme() {
+	if app.projectList == nil || app.tabs == nil {
+		return
+	}
+
+	projectTabIndex := 1 // Project tab is the second tab (index 1)
+	if projectTabIndex >= len(app.tabs.Items) {
+		return
+	}
+
+	projectTab := app.tabs.Items[projectTabIndex]
+	projectColor := app.projectList.GetColor()
+	projectName := app.projectList.GetName()
+	backgroundImage := app.projectList.GetBackgroundImage()
+
+	// Update tab title with color indicator
+	colorEmoji := app.getColorEmoji(projectColor)
+	projectTab.Text = fmt.Sprintf("📁 Projects %s", colorEmoji)
+
+	// Update theme info label if available
+	if app.projectThemeInfo != nil {
+		themeMessage := fmt.Sprintf("🎨 %s • %s %s", projectName, colorEmoji, strings.ToUpper(projectColor))
+		// Only show background image indicator if file actually exists
+		if backgroundImage != "" {
+			if _, err := os.Stat(backgroundImage); err == nil {
+				themeMessage += " • 🖼️ Background Image"
+			}
+		}
+		app.projectThemeInfo.SetText(themeMessage)
+		app.projectThemeInfo.TextStyle = fyne.TextStyle{Italic: true, Bold: true}
+		app.projectThemeInfo.Refresh()
+	}
+
+	// Apply background image safely if available and file exists
+	if backgroundImage != "" {
+		if _, err := os.Stat(backgroundImage); err == nil {
+			themedContent := app.createProjectThemedContainer(projectTab.Content)
+			projectTab.Content = themedContent
+			app.tabs.Refresh()
+		}
+	}
+	
+	fmt.Printf("🎨 Applied project theme: %s (color: %s, image: %s)\n",
+		projectName, projectColor, backgroundImage)
+}
+
+// createProjectThemedContainer creates a themed container for project tab
+func (app *TodoApp) createProjectThemedContainer(originalContent fyne.CanvasObject) fyne.CanvasObject {
+	if app.projectList == nil {
+		return originalContent
+	}
+
+	// Only add background image if it exists and is valid
+	backgroundImagePath := app.projectList.GetBackgroundImage()
+	if backgroundImagePath != "" {
+		if _, err := os.Stat(backgroundImagePath); err == nil {
+			imageResource, err := fyne.LoadResourceFromPath(backgroundImagePath)
+			if err == nil {
+				// Create background image
+				backgroundImage := widget.NewIcon(imageResource)
+				
+				// Stack background image behind content
+				return container.NewStack(
+					backgroundImage,
+					container.NewPadded(originalContent),
+				)
+			} else {
+				fmt.Printf("❌ Error loading background image: %v\n", err)
+			}
+		}
+	}
+
+	// If no background image or error, return original content
+	return originalContent
+}
+
+// createColorBackground creates a colored background based on project color
+func (app *TodoApp) createColorBackground(projectColor string) fyne.CanvasObject {
+	// Create a simple colored card as background
+	colorEmoji := app.getColorEmoji(projectColor)
+	colorName := strings.ToUpper(projectColor)
+	
+	// Create a subtle indicator card
+	colorCard := widget.NewCard("", fmt.Sprintf("%s %s Theme", colorEmoji, colorName), nil)
+	
+	// Create a container with very light background color indication
+	colorIndicator := widget.NewLabel("")
+	colorIndicator.Resize(fyne.NewSize(2000, 2000))
+	
+	return container.NewStack(colorIndicator, colorCard)
+}
+
+// getColorEmoji returns emoji for project color
+func (app *TodoApp) getColorEmoji(color string) string {
+	switch color {
+	case "red":
+		return "🔴"
+	case "green":
+		return "🟢"
+	case "blue":
+		return "🔵"
+	case "yellow":
+		return "🟡"
+	case "orange":
+		return "🟠"
+	case "purple":
+		return "🟣"
+	case "brown":
+		return "🟤"
+	case "black":
+		return "⚫"
+	default:
+		return "🔵" // default blue
+	}
+}
+
+// migrateOldProjectFile adds header metadata to old project files that don't have it
+func (app *TodoApp) migrateOldProjectFile(projectName string) {
+	filename := filepath.Join("data/project", projectName+".txt")
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		return
+	}
+
+	// Check if file already has header
+	lines := strings.Split(string(content), "\n")
+	hasHeader := false
+	for _, line := range lines {
+		if strings.HasPrefix(line, "# Project:") {
+			hasHeader = true
+			break
+		}
+	}
+
+	// If file doesn't have header, add it
+	if !hasHeader {
+		header := fmt.Sprintf("# Project: %s\n# Color: blue\n# Created: %s\n\n",
+			projectName, time.Now().Format("2006-01-02 15:04:05"))
+		newContent := header + string(content)
+
+		os.WriteFile(filename, []byte(newContent), 0644)
+		fmt.Printf("🔄 Migrated old project file: %s\n", projectName)
+	}
+}
+
+// createThemedProjectTabContent recreates the project tab content with theme applied
+func (app *TodoApp) createThemedProjectTabContent(themeMessage string) *fyne.Container {
+	// Don't recreate the entire tab content, just return the existing one with theme info
+	// This approach is simpler and avoids widget conflicts
+	
+	// Theme info label
+	themeInfoLabel := widget.NewLabel(themeMessage)
+	themeInfoLabel.TextStyle = fyne.TextStyle{Italic: true, Bold: true}
+
+	// Get existing project tab content and wrap with theme info
+	existingContent := app.setupProjectTab()
+	
+	// Wrap with theme background if available
+	if app.projectList != nil && (app.projectList.HasBackgroundImage() || app.projectList.GetColor() != "blue") {
+		themedContent := app.createProjectThemedContainer(existingContent)
+		return themedContent.(*fyne.Container)
+	}
+
+	return existingContent
 }
