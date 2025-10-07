@@ -45,6 +45,7 @@ todoapp
 # Build artifacts
 dist/
 build/
+data/
 
 # Data files (uncomment if you want to ignore todos.txt)
 todos.txt
