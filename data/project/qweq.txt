@@ -1,6 +1,0 @@
-# Project: qweq
-# Color: blue
-# Created: 2025-10-07 16:14:43
-
-1|asd|false|2025-10-07T14:39:32+07:00
-2|sads|false|2025-10-07T16:56:37+07:00

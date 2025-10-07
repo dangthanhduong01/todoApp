@@ -1,8 +1,0 @@
-# Project: sad
-# Color: yellow
-# BackgroundImage: data/themes/images/Screenshot from 2025-08-29 10-44-54.png
-# Created: 2025-10-07 15:41:12
-
-1|asdsd|false|2025-10-07T12:07:50+07:00
-2|asdsd|false|2025-10-07T12:11:35+07:00
-3|sads|true|2025-10-07T12:11:38+07:00

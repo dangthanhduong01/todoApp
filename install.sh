@@ -22,42 +22,40 @@ cp "$BINARY_NAME" "$INSTALL_DIR/$APP_NAME"
 chmod +x "$INSTALL_DIR/$APP_NAME"
 
 echo "🎨 Installing icon..."
-ICON_DIR="$HOME/.local/share/icons"
-mkdir -p "$ICON_DIR"
-cp "$ICON_FILE" "$ICON_DIR/$ICON_FILE"
+# Install to multiple icon directories for compatibility
+ICON_BASE_DIR="$HOME/.local/share/icons"
+
+# Install to hicolor theme (standard)
+HICOLOR_DIR="$ICON_BASE_DIR/hicolor/128x128/apps"
+mkdir -p "$HICOLOR_DIR"
+cp "$ICON_FILE" "$HICOLOR_DIR/$ICON_FILE"
+
+# Also install to base icons directory
+mkdir -p "$ICON_BASE_DIR"
+cp "$ICON_FILE" "$ICON_BASE_DIR/$ICON_FILE"
+
 
 echo "🖥️ Creating desktop entry..."
-# Update desktop file with correct paths
-sed "s|Exec=.*|Exec=$INSTALL_DIR/$APP_NAME|g" "$DESKTOP_FILE" | \
-sed "s|Icon=.*|Icon=$ICON_DIR/$ICON_FILE|g" > ~/.local/share/applications/"$DESKTOP_FILE"
-
-chmod +x ~/.local/share/applications/"$DESKTOP_FILE"
+# Create desktop file dynamically with current project path
+cat > ~/.local/share/applications/"$DESKTOP_FILE" << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Todo List App
+Comment=Desktop Todo List Application with Project Management
+Exec=bash -c "cd '$CURRENT_DIR' && ./$APP_NAME"
+Icon=$CURRENT_DIR/$ICON_FILE
+Terminal=false
+Categories=Office;Utility;
+Keywords=todo;task;project;productivity;
+StartupNotify=true
+StartupWMClass=Todo List Application
+X-Ubuntu-Touch=true
+EOF
 
 echo "🔄 Updating desktop database..."
-# Try to update desktop database, fallback if command not available
+# Update desktop database
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database ~/.local/share/applications/ 2>/dev/null
     echo "   ✅ Desktop database updated"
-else
-    echo "   ℹ️  update-desktop-database not found (app may need logout/restart to appear in menu)"
-fi
-
-echo "✅ Installation completed!"
-echo ""
-echo "📋 Todo List App has been installed successfully!"
-echo "   - Binary location: $INSTALL_DIR/$APP_NAME"
-echo "   - Desktop file: ~/.local/share/applications/$DESKTOP_FILE"
-echo "   - Icon: $ICON_DIR/$ICON_FILE"
-echo ""
-echo "🎯 You can now:"
-echo "   1. Run from terminal: $APP_NAME (if ~/.local/bin is in PATH)"
-echo "   2. Find 'Todo List App' in your application menu"
-echo "   3. Run directly: $INSTALL_DIR/$APP_NAME"
-
-# Check if ~/.local/bin is in PATH
-if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-    echo ""
-    echo "⚠️  Note: ~/.local/bin is not in your PATH"
-    echo "   Add this line to your ~/.bashrc or ~/.zshrc:"
-    echo "   export PATH=\"\$HOME/.local/bin:\$PATH\""
 fi
