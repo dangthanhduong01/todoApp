@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="#4A90E2" stroke="#2E5C8A" stroke-width="4"/>
+  
+  <!-- Todo list background -->
+  <rect x="32" y="28" width="64" height="72" rx="8" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="2"/>
+  
+  <!-- Header line -->
+  <line x1="40" y1="40" x2="88" y2="40" stroke="#333333" stroke-width="2"/>
+  
+  <!-- Checkboxes and lines -->
+  <!-- First item -->
+  <rect x="40" y="50" width="8" height="8" fill="#4CAF50" stroke="#2E7D32" stroke-width="1"/>
+  <line x1="42" y1="54" x2="44" y2="56" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <line x1="44" y1="56" x2="46" y2="52" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <line x1="52" y1="54" x2="80" y2="54" stroke="#333333" stroke-width="2"/>
+  
+  <!-- Second item -->
+  <rect x="40" y="64" width="8" height="8" fill="#FFFFFF" stroke="#666666" stroke-width="1"/>
+  <line x1="52" y1="68" x2="80" y2="68" stroke="#333333" stroke-width="2"/>
+  
+  <!-- Third item -->
+  <rect x="40" y="78" width="8" height="8" fill="#FFFFFF" stroke="#666666" stroke-width="1"/>
+  <line x1="52" y1="82" x2="76" y2="82" stroke="#333333" stroke-width="2"/>
+  
+  <!-- Plus icon for adding new items -->
+  <circle cx="80" cy="88" r="6" fill="#FF5722" stroke="#D32F2F" stroke-width="1"/>
+  <line x1="77" y1="88" x2="83" y2="88" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <line x1="80" y1="85" x2="80" y2="91" stroke="white" stroke-width="2" stroke-linecap="round"/>
+</svg>
