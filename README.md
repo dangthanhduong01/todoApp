@@ -1,8 +1,8 @@
-# 📝 Todo List Desktop Application
+# Todo List Desktop Application
 
 This desktop task management application is written in Go and uses the Fyne framework for the user interface.
 
-## ✨ Features
+## Features
 
 - **Add New Task**: Enter the task description and add it to the list.
 - **Tab Interface**: 3 separate tabs - All, Not Completed, Completed.
@@ -13,12 +13,12 @@ This desktop task management application is written in Go and uses the Fyne fram
 - **Persistent Storage**: Data is stored in a text file (`todos.txt`).
 - **Card Interface**: Each task is displayed as a card with clear information.
 
-## 🚀 How to use
+## How to use
 
 ### System Requirements
 - Go 1.19 or higher
 - Linux with X11 (or Wayland with XWayland)
-- Các thư viện hệ thống: libgl1-mesa-dev, libxi-dev, libxcursor-dev, libxrandr-dev, libxinerama-dev, libxxf86vm-dev
+- Library: libgl1-mesa-dev, libxi-dev, libxcursor-dev, libxrandr-dev, libxinerama-dev, libxxf86vm-dev
 
 ### Setup dependencies
 ```bash
@@ -40,18 +40,18 @@ go build
 
 ```
 todoapp/
-├── main.go          # Giao diện người dùng với Fyne
-├── todo.go          # Logic quản lý todos và file operations
-├── todos.txt        # File lưu trữ dữ liệu (tự động tạo)
+├── main.go          # Interface user using Fyne
+├── todo.go          # Manage todos và file operations
+├── todos.txt        # File store data (auto create)
 ├── go.mod           # Go module dependencies
-└── README.md        # Tài liệu này
+└── README.md        # Document
 ```
 
-## 🛠️ Development
+## Development
 
 ### Dependencies
-- `fyne.io/fyne/v2` - Framework GUI cho Go
-- Go standard library cho file I/O và string processing
+- `fyne.io/fyne/v2` - Framework GUI for Go
+- Go standard library for file I/O and string processing
 
 ### Data type
 Data store in file `todos.txt` with format:
