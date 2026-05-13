@@ -6,10 +6,10 @@ This desktop task management application is written in Go and uses the Fyne fram
 
 - **Add New Task**: Enter the task description and add it to the list.
 - **Tab Interface**: 3 separate tabs - All, Not Completed, Completed.
-- **Individual Action Buttons**: Each task has its own ✅ Complete and 🗑️ Delete buttons.
+- **Individual Action Buttons**: Each task has its own Complete and Delete buttons.
 - **View Task List**: Displays tasks by status with clear emojis.
-- **Mark as Complete**: Click the ✅ button next to each task.
-- **Delete Task**: Click the 🗑️ button with confirmation before deleting.
+- **Mark as Complete**: Click the button next to each task.
+- **Delete Task**: Click the button with confirmation before deleting.
 - **Persistent Storage**: Data is stored in a text file (`todos.txt`).
 - **Card Interface**: Each task is displayed as a card with clear information.
 
@@ -36,7 +36,7 @@ go build
 ./todoapp
 ```
 
-## 📁 Project structure
+## Project structure
 
 ```
 todoapp/
@@ -71,14 +71,14 @@ You can customize:
 - **Header**: Application title and description
 - **Input Section**: Input field and add new task button
 - **Navigation Tabs**: 3 tabs to filter by status
-  - 📋 **All**: Displays all tasks
-  - 📌 **Incomplete**: Shows tasks currently in progress
-  - ✅ **Completed**: Shows completed tasks
+  - **All**: Displays all tasks
+  - **Incomplete**: Shows tasks currently in progress
+  - **Completed**: Shows completed tasks
 - **Todo Cards**: Each task is displayed as a card with:
-  - Status emoji (📌/✅) and task description
+  - Status emoji and task description
   - Task ID for easy tracking
-  - ✅ Complete button (or notification if completed)
-  - 🗑️ Delete button with confirmation
+  - Complete button (or notification if completed)
+  - Delete button with confirmation
 - **Dialogs**: Confirmation and status messages
 
 
