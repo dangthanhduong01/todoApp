@@ -1,88 +1,113 @@
 # 🎆 Fireworks Package
 
 P1. **Burst** 🎆
-   - Nổ tán ra theo mọi hướng với emoji pháo hoa
-   - Classic fireworks explosion
+
+- Explodes in all directions with fireworks emoji
+
+- Classic fireworks explosion
 
 2. **Fountain** 🌟
-   - Phun lên như đài phun nước với emoji sao
-   - Particles bay lên cao rồi rơi xuống
+
+- Sprays up like a fountain with star emoji
+
+- Particles fly high and then fall down
 
 3. **Spiral** 🎇
-   - Xoắn ốc tạo pattern đẹp mắt với emoji sparkler
-   - Hiệu ứng xoay tròn
+
+- Spiral creates beautiful patterns with sparkler emoji
+
+- Rotating effect
 
 4. **Heart** 💫
-   - Hình trái tim romantic với emoji dizzy
-   - Sử dụng phương trình tham số toán học
+
+- Romantic heart shape with dizzy emoji
+
+- Uses mathematical parametric equations
 
 5. **Star** ⭐
-   - Hình ngôi sao 5 cánh với emoji ngôi sao
-   - Pattern symmetric đẹp mắt hiệu ứng vật lý thực tế cho ứng dụng Fyne.
 
-## ✨ Tính năng
+- 5-pointed star shape with star emoji
 
-### 🎇 Hiệu ứng pháo hoa nâng cao:
-- **Advanced Physics**: Particles với gravity, air resistance, wind, và bounce
-- **Trail Effects**: Vệt sáng theo sau mỗi particle với fade
-- **Multiple explosion types**: 5 loại nổ với mathematical precision
-- **Animation mượt mà**: 5 FPS với trajectory tính toán chính xác  
-- **Sophisticated Fade**: Alpha blending với fade in/out tự nhiên
-- **Orchestrated Sequences**: 6 waves explosions với grand finale
-- **Sparkle Effects**: 20% particles có hiệu ứng lấp lánh random
-- **Bounce Physics**: 30% particles nảy khi chạm đất với energy loss
+- Beautiful symmetric pattern with realistic physics effects for the Fyne app.
 
-### 🎨 Hệ thống emoji pháo hoa:
+## ✨ Features
 
-**10 emoji chính**: 🎆🎇✨🌟�⭐��🌠🎊
-- Particles sử dụng emoji pháo hoa đa dạng
-- Hiệu ứng sống động và bắt mắt
-- Visual phong phú và có cảm xúc
+### 🎇 Advanced Fireworks Effects:
+- **Advanced Physics**: Particles with gravity, air resistance, wind, and bounce
+- **Trail Effects**: Light trails following each particle with fade
+- **Multiple Explosion Types**: 5 explosion types with mathematical precision
+- **Smooth Animation**: 5 FPS with precisely calculated trajectory
+- **Sophisticated Fade**: Alpha blending with natural fade in/out
+- **Orchestrated Sequences**: 6 waves of explosions with a grand finale
+- **Sparkle Effects**: 20% of particles have a random sparkling effect
+- **Bounce Physics**: 30% of particles bounce on impact with energy loss
 
-### 🎆 Các loại explosion:
+### 🎨 Fireworks Emoji System:
+
+**10 Main Emojis**: 🎆🎇✨🌟⭐🌠🎊
+
+- Particles use a variety of fireworks emojis:
+
+- Vivid and eye-catching effects
+
+- Rich and expressive visuals
+
+### 🎆 Explosion types:
 
 1. **Burst** 🔴
-   - Nổ tán ra theo mọi hướng với chấm màu sặc sỡ
-   - Classic fireworks explosion
+
+- Explodes in all directions with colorful dots
+
+- Classic fireworks explosion
 
 2. **Fountain** 🔵
-   - Phun lên như đài phun nước với chấm xanh
-   - Particles bay lên cao rồi rơi xuống
+
+- Sprays up like a fountain with blue dots
+
+- Particles fly high and then fall down
 
 3. **Spiral** 🟣
-   - Xoắn ốc tạo pattern đẹp mắt với chấm tím
-   - Hiệu ứng xoay tròn
 
-4. **Heart** �
-   - Hình trái tim romantic với chấm đỏ
-   - Sử dụng phương trình tham số toán học
+- Spiral creates a beautiful pattern with purple dots
+
+- Rotating effect
+
+4. **Heart**
+
+- Romantic heart shape with red dots
+
+- Uses a mathematical parametric equation
 
 5. **Star** 🟡
-   - Hình ngôi sao 5 cánh với chấm vàng
-   - Pattern symmetric đẹp mắt
 
-## 🚀 Cách sử dụng
+- 5-pointed star shape with yellow dots
+
+- Beautiful symmetric pattern
+
+## 🚀 How to use
 
 ### Import package:
+
 ```go
+
 import "todoapp/fireworks"
 ```
 
-### Hiển thị pháo hoa:
+### Fireworks display:
 ```go
-fireworks.ShowFireworksDialog("Hoàn thành task!", myWindow)
+fireworks.ShowFireworksDialog("Task completed!", myWindow)
 ```
 
-### Tạo fireworks system custom:
+### Create custom fireworks system:
 ```go
-// Tạo system
+// Create system
 fs := fireworks.NewFireworksSystem(800, 600)
 
-// Thêm explosions
+// Add explosions
 fs.AddExplosion(400, 300, fireworks.Burst)
 fs.AddExplosion(200, 200, fireworks.Heart)
 
-// Bắt đầu animation
+// Start animation
 fs.Start()
 
 // Render to container
@@ -92,29 +117,29 @@ container := fs.Render()
 ## 📐 Advanced Physics Engine
 
 ### Enhanced Particle Properties:
-- **Position**: X, Y coordinates với sub-pixel precision
-- **Velocity**: VX, VY speed vectors với realistic physics
+- **Position**: X, Y coordinates with sub-pixel precision
+- **Velocity**: VX, VY speed vectors with realistic physics. physics
 - **Gravity**: Downward acceleration (0.05-0.2) variable
-- **Life**: Frame-based aging với MaxLife randomization
-- **Size**: Variable particle sizes (0.8-2.3) với alpha scaling
-- **Alpha**: Transparency (0.0-1.0) với fade in/out
-- **Trail**: 5-point trail system với independent fade
-- **Bounce**: 30% particles bounce với energy loss
-- **Wind Resistance**: Air resistance (0.98-1.0) cho realism
-- **Sparkle**: 20% particles có lấp lánh effects
+- **Life**: Frame-based aging with MaxLife randomization
+- **Size**: Variable particle sizes (0.8-2.3) with alpha scaling
+- **Alpha**: Transparency (0.0-1.0) with fade in/out
+- **Trail**: 5-point trail system with independent fade
+- **Bounce**: 30% particles bounce with energy loss
+- **Wind Resistance**: Air resistance (0.98-1.0) for realism
+- **Sparkle**: 20% of particles have sparkling effects
 
 ### Advanced Physics Calculations:
 - **Air Resistance**: `VX *= windResistance, VY *= windResistance`
-- **Realistic Wind**: `windForce = 0.01 * sin(frameCount*0.1 + X*0.01)`  
-- **Bounce Mechanics**: `VY *= -0.6, VX *= 0.8` khi impact
-- **Turbulence**: Random drift `±0.015` cho natural movement
+- **Realistic Wind**: `windForce = 0.01 * sin(frameCount*0.1 + X*0.01)`
+- **Bounce Mechanics**: `VY *= -0.6, VX *= 0.8` on impact
+- **Turbulence**: Random drift `±0.015` for natural movement
 
 ### Mathematical Formulas:
 
 **Gravity Effect:**
 ```
-VY += gravity  // Acceleration downward
-Y += VY        // Update position
+VY += gravity // Acceleration downward
+Y += VY // Update position
 ```
 
 **Heart Shape (Parametric):**
@@ -126,7 +151,7 @@ Y = -(13*cos(t) - 5*cos(2t) - 2*cos(3t) - cos(4t))
 **Enhanced Star Pattern:**
 ```
 outerRadius = explosion.Speed
-innerRadius = explosion.Speed * 0.4
+innerRadius = explosion.Speed ​​* 0.4
 pointIndex = i % (starPoints * 2)
 angle = pointIndex * (π / starPoints)
 ```
@@ -134,95 +159,100 @@ angle = pointIndex * (π / starPoints)
 **Trail System:**
 ```
 trail[i] = {X, Y, Alpha, Age}
-trailAlpha *= 0.8  // Fade each frame  
-trailSize = 10 + index*2  // Size decreases
+trailAlpha *= 0.8 // Fade each frame
+trailSize = 10 + index*2 // Size reduced
 ```
 
 **Advanced Fade Algorithm:**
 ```
-if lifeRatio > 0.7:
-    alpha = 1.0 - ((lifeRatio - 0.7) / 0.3)
-elif lifeRatio < 0.1:
-    alpha = lifeRatio / 0.1
+if lifeRatio > 0.7: 
+alpha = 1.0 - ((lifeRatio - 0.7) / 0.3)
+elif lifeRatio < 0.1: 
+alpha = lifeRatio / 0.1
 ```
 
 ## ⚡ HIGH-SPEED Performance
 
-- **Frame Rate**: 10 FPS (100ms intervals) - **TĂNG GẤP ĐÔI**
-- **Particle Count**: 30-70 per explosion - **NHIỀU HƠN 40%**
-- **Particle Speed**: 4-8 velocity - **NHANH GẤP ĐÔI** 
+- **Frame Rate**: 10 FPS (100ms intervals) - **DOUBLE**
+- **Particle Count**: 30-70 per explosion - **40% MORE**
+- **Particle Speed**: 4-8 velocity - **DOUBLE AS FAST**
 - **Max Particles**: ~500 simultaneous (high density)
-- **Duration**: 8 seconds rapid-fire sequence - **NHANH GẤP 3 LẦN**
-- **Trail Points**: 3 points per particle (optimized cho tốc độ)
-- **Gravity**: 0.15-0.4 acceleration - **MẠNH HƠN**
+- **Duration**: 8 seconds rapid-fire sequence - **THREE TIMES FASTER**
+- **Trail Points**: 3 points per particle (optimized for speed)
+- **Gravity**: 0.15-0.4 acceleration - ** STRONGER**
 - **Turbulence**: Enhanced dynamic movement
 - **Memory**: Ultra-fast cleanup + optimized trail management
 
-### 🚀 Speed Improvements:
+### 🚀 Speed ​​Improvements:
 - **Explosion Delays**: Reduced by 50-75% for rapid-fire effect
-- **Particle Physics**: 2x faster movement với enhanced turbulence
-- **Bounce Power**: Stronger bounces với less energy loss
+- **Particle Physics**: 2x faster movement with enhanced turbulence
+- **Bounce Power**: Stronger bounces with less energy loss
 - **Wind Effects**: 3x stronger wind forces
-- **Machine Gun Finale**: 60ms intervals thay vì 150ms
+- **Machine Gun Finale**: 60ms intervals instead of 150ms
 
-## 🎯 Integration với Todo App
+## 🎯 Integration with Todo App
 
-Khi user hoàn thành một task, system sẽ:
+When the user completes a task, the system will:
 
 1. **Call**: `fireworks.ShowFireworksDialog(taskDescription, window)`
-2. **Create**: 5 explosions với timing khác nhau
-3. **Physics**: Particles bay theo trajectory thực tế
-4. **Cleanup**: Auto-cleanup khi dialog đóng
+2. **Create**: 5 explosions with different timings
+3. **Physics**: Particles fly according to realistic trajectory
+4. **Cleanup**: Auto-cleanup when dialog closes
 
 ## 🛠️ Technical Implementation
 
 ### Core Structures:
 - `Particle`: Individual firework particle
-- `Explosion`: Explosion definition  
+- `Explosion`: Explosion definition
 - `FireworksSystem`: Main animation engine
 
 ### Thread Safety:
-- Sử dụng `fyne.DoAndWait()` cho UI updates
-- Goroutines cho physics calculations
+- Use `fyne.DoAndWait()` for UI updates
+- Goroutines for physics calculations
 - Proper cleanup mechanisms
 
 ## 🎨 Customization
 
 ### Colorful Dots System:
 ```go
-// Main colors - chấm màu chính
+// Main colors - main color dot
 colors := []string{"🔴", "🟠", "🟡", "🟢", "🔵", "🟣", "🟤", "⚫", "⚪", "🟥", "🟧", "🟨", "🟩", "🟦", "🟪"}
 
-// Sparkle colors - chấm sáng lấp lánh  
+// Sparkle colors - sparkling dots
 sparkleColors := []string{"⚪", "🟡", "🟠", "�"}
 
-// Fade colors - chấm mờ dần
+// Fade colors - dots fade
 fadeColors := []string{"⚫", "🟫", "�"}
 
-// Trail colors - vệt sáng
+// Trail colors - light trails
 trailColors := []string{"⚪", "�", "🟤", "⚫"}
 ```
 
 ### RAPID-FIRE Timing Sequence:
 - **Wave 1**: Lightning opening (+0ms)
-- **Wave 2**: Rapid symmetric bursts (+150ms) **⚡ 2X NHANH HƠN** 
-- **Wave 3**: Quick heart (+400ms) **⚡ 2.25X NHANH HƠN**
-- **Wave 4**: Machine-gun star constellation (+700ms) **⚡ 2.4X NHANH HƠN**
-- **Wave 5**: Instant fountain duo (+900ms) **⚡ 2.4X NHANH HƠN**
-- **Wave 6**: Rapid spiral dance (+1050ms) **⚡ 2.5X NHANH HƠN**
-- **MASSIVE Finale**: Triple burst explosion (+1300ms) **⚡ 2.5X NHANH HƠN**
-- **Machine Gun Sparkles**: 5 rapid bursts (+1400ms) **⚡ 2.5X NHANH HƠN**
+- **Wave 2**: Rapid symmetric bursts (+150ms) **⚡ 2X FASTER**
+- **Wave 3**: Quick heart (+400ms) **⚡ 2.25X FASTER**
+- **Wave 4**: Machine-gun star constellation (+700ms) **⚡ 2.4X FASTER**
+- **Wave 5**: Instant fountain duo (+900ms) **⚡ 2.4X FASTER**
+- **Wave 6**: Rapid spiral dance (+1050ms) **⚡ 2.5X FASTER**
+- **MASSIVE Finale**: Triple burst explosion (+1300ms) **⚡ 2.5X FASTER**
 
-**Tổng thời gian: ~2.5 giây thay vì 8+ giây - SIÊU NHANH! 🚀**
+- **Machine Gun Sparkles**: 5 rapid bursts (+1400ms) **⚡ 2.5X FASTER**
+
+**Total time: ~2.5 seconds instead of 8+ seconds - SUPER FAST!** 🚀**
 
 ## 📱 Fyne Integration
 
-Compatible với:
+Compatible with:
+
 - Fyne v2.6.3+
+
 - Cross-platform (Linux, Windows, macOS)
+
 - Software rendering support
+
 - Responsive layouts
 
 ---
 
-**🎊 Tận hưởng hiệu ứng pháo hoa tuyệt đẹp khi hoàn thành tasks! 🎊**
+**🎊 Enjoy stunning fireworks effects upon completing tasks! 🎊**
